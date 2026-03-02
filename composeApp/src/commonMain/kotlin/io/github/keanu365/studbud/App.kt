@@ -8,11 +8,10 @@ import io.github.keanu365.studbud.theme.typography
 
 @Composable
 @Preview
-fun App(typography: Typography = typography()) {
-    StudBudTheme(
-        typography = typography
-    ){
-        ThemeTest()
+fun App() {
+//    ThemeTest()
+//    TODO Actual project
+    StudBudTheme {
+        SplashScreen()
     }
-    //TODO Actual project
 }

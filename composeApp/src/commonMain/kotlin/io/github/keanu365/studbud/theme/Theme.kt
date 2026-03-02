@@ -45,14 +45,13 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun StudBudTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    typography: Typography,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = typography,
+        typography = typography(),
         content = content
     )
 }
