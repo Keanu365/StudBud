@@ -23,7 +23,9 @@ import androidx.compose.ui.unit.dp
 import io.github.keanu365.studbud.theme.StudBudTheme
 
 @Composable
-fun ThemeTest(){
+fun ThemeTest(
+    onReturn: () -> Unit
+){
     var isDarkTheme by remember { mutableStateOf(false) }
     StudBudTheme(darkTheme = isDarkTheme) {
         Surface(
@@ -84,7 +86,7 @@ fun ThemeTest(){
                     )
                 ) {
                     Text(
-                        text = "This is a warning button"
+                        text = "This is a warning button, click to return to splash screen"
                     )
                 }
                 Card(

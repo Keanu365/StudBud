@@ -5,7 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class SplashScreenViewModel : ViewModel() {
-    //Continue watching https://youtu.be/G_e9XL5tI6U?si=EWVbB3cCQddgH522
+    // Check back at https://youtu.be/G_e9XL5tI6U?si=EWVbB3cCQddgH522
+    // for next view models
     private val _tips = MutableStateFlow(
         listOf(
             "Tips 1",

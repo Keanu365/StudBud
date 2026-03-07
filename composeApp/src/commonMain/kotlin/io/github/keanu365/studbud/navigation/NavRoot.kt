@@ -1,0 +1,66 @@
+package io.github.keanu365.studbud.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
+import androidx.savedstate.serialization.SavedStateConfiguration
+import io.github.keanu365.studbud.*
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+
+@Composable
+fun NavRoot(
+    modifier: Modifier = Modifier
+){
+    val backStack = rememberNavBackStack(
+        configuration = SavedStateConfiguration{
+            serializersModule = SerializersModule{
+                polymorphic(NavKey::class){
+                    // All future screens need to be added here,
+                    // like intents in AndroidManifest.xml.
+                    // Don't forget to do so at Line 35 too!
+                    subclass(Route.SplashScreen::class, Route.SplashScreen.serializer())
+                    subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
+                }
+            }
+        },
+        Route.SplashScreen
+    )
+    NavDisplay(
+        backStack = backStack,
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()
+        ),
+        entryProvider = { key ->
+            when(key){
+                // Same here!
+                Route.SplashScreen -> {
+                    NavEntry(key){
+                        SplashScreen(
+                            onEnd = {
+                                backStack.add(Route.ThemeTest)
+                            }
+                        )
+                    }
+                }
+                Route.ThemeTest -> {
+                    NavEntry(key) {
+                        ThemeTest(
+                            onReturn = {
+                                backStack.remove(Route.ThemeTest)
+                            }
+                        )
+                    }
+                }
+                else -> error("Unknown route: $key")
+            }
+        },
+        modifier = modifier
+    )
+}

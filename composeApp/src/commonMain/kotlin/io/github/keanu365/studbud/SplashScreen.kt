@@ -18,12 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.keanu365.studbud.viewmodels.SplashScreenViewModel
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.studbud
@@ -43,12 +43,19 @@ import kotlin.random.Random
 
 @Composable
 fun SplashScreen(
-    viewModel: SplashScreenViewModel = viewModel()
+    viewModel: SplashScreenViewModel = viewModel { SplashScreenViewModel() },
+    onEnd: () -> Unit
 ){
-//    val screenShowTime = Random.nextInt(2000, 5000) TODO
+    val screenShowTime = remember { Random.nextInt(2000, 8000) }
     val tips by viewModel.tips.collectAsStateWithLifecycle()
     var animationChoice by remember { mutableStateOf(LogoAnimation.random()) }
     var tip by remember { mutableStateOf(tips[Random.nextInt(tips.size)]) }
+
+    LaunchedEffect(Unit){
+        delay(screenShowTime.toLong())
+        onEnd()
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -97,6 +104,7 @@ fun AnimatedLogo(
             contentDescription = "StudBud Logo",
             modifier = animateLogo(animationChoice)
                 .then(modifier)
+                .padding(20.dp)
         )
     }
 }
