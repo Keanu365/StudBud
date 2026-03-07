@@ -7,6 +7,9 @@ import kotlinx.serialization.Serializable
 sealed interface Route: NavKey {
 
     @Serializable
-    data object MainNav: Route, NavKey
+    data object SplashScreen: Route, NavKey
+    @Serializable
+    data object ThemeTest: Route, NavKey //REMOVE ONCE START ON ACTUAL PROJECT
+
 
 }
