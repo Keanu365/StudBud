@@ -33,38 +33,32 @@ import androidx.compose.ui.unit.dp
 import io.github.keanu365.studbud.theme.buttonColors
 import kotlinx.coroutines.launch
 import studbud.composeapp.generated.resources.Res
-import studbud.composeapp.generated.resources.icon_email
 import studbud.composeapp.generated.resources.icon_lock
 import studbud.composeapp.generated.resources.icon_user
 
 @Composable
-fun SignUpPage(
+fun SignInPage(
     modifier: Modifier = Modifier,
-    onSignInClicked: () -> Unit
+    onSignUpClicked: () -> Unit
 ){
     val snackBarHostState = remember { SnackbarHostState() }
     val signUpScope = rememberCoroutineScope()
 
-    var email by remember {mutableStateOf("")}
-    var username by remember { mutableStateOf("") }
+    var emailOrUsername by remember {mutableStateOf("")}
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember {mutableStateOf("")}
 
-    var isEmailError by remember {mutableStateOf(false)}
-    var isUsernameError by remember {mutableStateOf(false)}
+    var isEmailOrUsernameError by remember {mutableStateOf(false)}
     var isPasswordError by remember {mutableStateOf(false)}
-    var doesPasswordConflict by remember {mutableStateOf(false)}
     var submitAttempted by remember {mutableStateOf(false)}
     var buttonEnabled by remember {mutableStateOf(true)}
     fun performValidationChecks(): Boolean = run {
-        isEmailError = !isEmailValid(email)
-        isUsernameError = username.isBlank()
+        isEmailOrUsernameError = !isEmailValid(emailOrUsername) || emailOrUsername.isBlank()
         isPasswordError = password.isBlank()
-        doesPasswordConflict = password != confirmPassword
-        !(isEmailError || isUsernameError || isPasswordError || doesPasswordConflict)
+        //TODO check username and password once backend is set up
+        !(isEmailOrUsernameError || isPasswordError)
     }
 
-    LaunchedEffect(email, username, password, confirmPassword){
+    LaunchedEffect(emailOrUsername, password){
         if (submitAttempted) {
             buttonEnabled = performValidationChecks()
         }
@@ -83,7 +77,7 @@ fun SignUpPage(
             modifier = Modifier.height(5.dp)
         )
         Text(
-            text = "Sign up to get started!",
+            text = "Welcome back!",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
@@ -91,24 +85,14 @@ fun SignUpPage(
                 .focusable()
         )
         InfoField(
-            value = email,
+            value = emailOrUsername,
             onValueChange = {
-                email = it
+                emailOrUsername = it
             },
             labelText = "Email",
-            leadingIconResource = Res.drawable.icon_email,
-            isError = isEmailError,
-            errorText = "Invalid email"
-        )
-        InfoField(
-            value = username,
-            onValueChange = {
-                username = it
-            },
-            labelText = "Username",
             leadingIconResource = Res.drawable.icon_user,
-            isError = isUsernameError,
-            errorText = "Please fill in a username!"
+            isError = isEmailOrUsernameError,
+            errorText = "Invalid email"
         )
         InfoField(
             value = password,
@@ -121,24 +105,13 @@ fun SignUpPage(
             isPassword = true,
             errorText = "Please fill in a password!"
         )
-        InfoField(
-            value = confirmPassword,
-            onValueChange = {
-                confirmPassword = it
-            },
-            labelText = "Confirm Password",
-            leadingIconResource = Res.drawable.icon_lock,
-            isError = doesPasswordConflict,
-            isPassword = true,
-            errorText = "Passwords do not match"
-        )
 
         Button(
             onClick = {
                 submitAttempted = true
                 buttonEnabled = performValidationChecks()
                 if (performValidationChecks()) {
-                    signUpScope.launch { snackBarHostState.showSnackbar("Sign up successful!") }
+                    signUpScope.launch { snackBarHostState.showSnackbar("Sign in successful!") }
                     //TODO: Sign up logic and individual error messages. Check for existing email/username too.
                 }
             },
@@ -151,7 +124,7 @@ fun SignUpPage(
             colors = buttonColors()
         ){
             Text(
-                text = "SIGN UP",
+                text = "SIGN IN",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -164,18 +137,18 @@ fun SignUpPage(
                 .fillMaxWidth()
         ){
             Text(
-                text = "Already have an account?",
+                text = "Don't have an account?",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
             Spacer(modifier = Modifier.width(5.dp))
             Text(
-                text = "SIGN IN",
+                text = "SIGN UP",
                 color = MaterialTheme.colorScheme.tertiary,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
                     .clickable{
-                        onSignInClicked()
+                        onSignUpClicked()
                     }
             )
         }
