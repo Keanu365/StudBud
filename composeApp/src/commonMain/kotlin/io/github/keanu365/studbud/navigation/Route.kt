@@ -5,12 +5,12 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 sealed interface Route: NavKey {
-
     @Serializable
     data object SplashScreen: Route, NavKey
     @Serializable
     data object ThemeTest: Route, NavKey //REMOVE ONCE START ON ACTUAL PROJECT
-
     @Serializable
     data object SignUpPage: Route, NavKey
+    @Serializable
+    data object SignInPage: Route, NavKey
 }

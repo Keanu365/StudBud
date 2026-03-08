@@ -29,6 +29,7 @@ fun NavRoot(
                     subclass(Route.SplashScreen::class, Route.SplashScreen.serializer())
                     subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
                     subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
+                    subclass(Route.SignInPage::class, Route.SignInPage.serializer())
                 }
             }
         },
@@ -65,7 +66,22 @@ fun NavRoot(
                 }
                 Route.SignUpPage -> {
                     NavEntry(key) {
-                        SignUpPage()
+                        SignUpPage(
+                            onSignInClicked = {
+                                backStack.remove(key)
+                                backStack.add(Route.SignInPage)
+                            }
+                        )
+                    }
+                }
+                Route.SignInPage -> {
+                    NavEntry(key) {
+                        SignInPage(
+                            onSignUpClicked = {
+                                backStack.remove(key)
+                                backStack.add(Route.SignUpPage)
+                            }
+                        )
                     }
                 }
                 else -> error("Unknown route: $key")
