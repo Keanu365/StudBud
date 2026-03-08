@@ -79,7 +79,7 @@ fun ThemeTest(
                     )
                 }
                 Button(
-                    onClick = {},
+                    onClick = onReturn,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError

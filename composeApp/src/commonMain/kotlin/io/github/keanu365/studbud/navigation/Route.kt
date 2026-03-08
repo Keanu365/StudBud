@@ -11,5 +11,6 @@ sealed interface Route: NavKey {
     @Serializable
     data object ThemeTest: Route, NavKey //REMOVE ONCE START ON ACTUAL PROJECT
 
-
+    @Serializable
+    data object SignUpPage: Route, NavKey
 }
