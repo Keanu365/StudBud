@@ -46,7 +46,7 @@ fun SplashScreen(
     viewModel: SplashScreenViewModel = viewModel { SplashScreenViewModel() },
     onEnd: () -> Unit
 ){
-    val screenShowTime = remember { Random.nextInt(2000, 8000) }
+    val screenShowTime = remember { Random.nextInt(2500, 5000) }
     val tips by viewModel.tips.collectAsStateWithLifecycle()
     var animationChoice by remember { mutableStateOf(LogoAnimation.random()) }
     var tip by remember { mutableStateOf(tips[Random.nextInt(tips.size)]) }

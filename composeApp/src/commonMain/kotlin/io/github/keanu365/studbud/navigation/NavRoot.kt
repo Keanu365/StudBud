@@ -10,6 +10,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.keanu365.studbud.*
+import io.github.keanu365.studbud.account.*
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 
@@ -24,8 +25,10 @@ fun NavRoot(
                     // All future screens need to be added here,
                     // like intents in AndroidManifest.xml.
                     // Don't forget to do so at Line 35 too!
+                    // Oh, and go serialize this in Route.kt before doing this
                     subclass(Route.SplashScreen::class, Route.SplashScreen.serializer())
                     subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
+                    subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
                 }
             }
         },
@@ -44,7 +47,9 @@ fun NavRoot(
                     NavEntry(key){
                         SplashScreen(
                             onEnd = {
-                                backStack.add(Route.ThemeTest)
+                                backStack.remove(key)
+                                backStack.add(Route.SignUpPage)
+                                //TODO: Logic for sign up / sign in / onboarding / homepage
                             }
                         )
                     }
@@ -53,9 +58,14 @@ fun NavRoot(
                     NavEntry(key) {
                         ThemeTest(
                             onReturn = {
-                                backStack.remove(Route.ThemeTest)
+                                backStack.remove(key)
                             }
                         )
+                    }
+                }
+                Route.SignUpPage -> {
+                    NavEntry(key) {
+                        SignUpPage()
                     }
                 }
                 else -> error("Unknown route: $key")
