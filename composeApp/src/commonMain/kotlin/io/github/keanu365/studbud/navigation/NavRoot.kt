@@ -30,6 +30,7 @@ fun NavRoot(
                     subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
                     subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
                     subclass(Route.SignInPage::class, Route.SignInPage.serializer())
+                    subclass(Route.SupabaseTest::class, Route.SupabaseTest.serializer())
                 }
             }
         },
@@ -50,7 +51,9 @@ fun NavRoot(
                             onEnd = {
                                 backStack.remove(key)
                                 backStack.add(Route.SignUpPage)
-                                //TODO: Logic for sign up / sign in / onboarding / homepage
+//                                For Supabase testing. Currently works.
+//                                backStack.add(Route.SupabaseTest)
+//                                TODO: Logic for sign up / sign in / onboarding / homepage
                             }
                         )
                     }
@@ -62,6 +65,11 @@ fun NavRoot(
                                 backStack.remove(key)
                             }
                         )
+                    }
+                }
+                Route.SupabaseTest -> {
+                    NavEntry(key) {
+                        SampleData()
                     }
                 }
                 Route.SignUpPage -> {

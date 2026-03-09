@@ -9,13 +9,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -62,21 +62,27 @@ fun SplashScreen(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .clickable{
-                    animationChoice = LogoAnimation.random()
-                    tip = tips[Random.nextInt(tips.size)]
-                },
+                .fillMaxSize(),
+//                .clickable{
+//                    animationChoice = LogoAnimation.random()
+//                    tip = tips[Random.nextInt(tips.size)]
+//                },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ){
-            AnimatedLogo(
-                animationChoice = animationChoice,
-                modifier = Modifier.padding(bottom = 100.dp)
-            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.7f)
+            ){
+                AnimatedLogo(
+                    animationChoice = animationChoice,
+                )
+            }
             Text(
                 text = tip,
-                style = MaterialTheme.typography.displayMedium
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp)
             )
         }
     }
@@ -95,18 +101,13 @@ fun AnimatedLogo(
     modifier: Modifier = Modifier,
     animationChoice: LogoAnimation,
 ){
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.height(500.dp).fillMaxWidth()
-    ){
-        Image(
-            painter = painterResource(Res.drawable.studbud),
-            contentDescription = "StudBud Logo",
-            modifier = animateLogo(animationChoice)
-                .then(modifier)
-                .padding(20.dp)
-        )
-    }
+    Image(
+        painter = painterResource(Res.drawable.studbud),
+        contentDescription = "StudBud Logo",
+        modifier = animateLogo(animationChoice)
+            .then(modifier)
+            .padding(20.dp)
+    )
 }
 
 @Composable
