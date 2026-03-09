@@ -8,7 +8,9 @@ sealed interface Route: NavKey {
     @Serializable
     data object SplashScreen: Route, NavKey
     @Serializable
-    data object ThemeTest: Route, NavKey //REMOVE ONCE START ON ACTUAL PROJECT
+    data object ThemeTest: Route, NavKey
+    @Serializable
+    data object SupabaseTest: Route, NavKey
     @Serializable
     data object SignUpPage: Route, NavKey
     @Serializable

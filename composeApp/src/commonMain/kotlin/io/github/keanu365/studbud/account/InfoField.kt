@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +60,7 @@ fun InfoField(
             singleLine = true,
             isError = isError,
             colors = outlinedTextFieldColors(),
+            shape = RoundedCornerShape(15.dp),
             modifier = Modifier
                 .padding(horizontal = 15.dp)
                 .fillMaxWidth()
