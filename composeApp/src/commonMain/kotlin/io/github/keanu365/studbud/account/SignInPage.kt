@@ -30,7 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.keanu365.studbud.theme.buttonColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_lock
@@ -39,7 +41,8 @@ import studbud.composeapp.generated.resources.icon_user
 @Composable
 fun SignInPage(
     modifier: Modifier = Modifier,
-    onSignUpClicked: () -> Unit
+    onSignUpClicked: () -> Unit,
+    onSignIn: (User) -> Unit = {}
 ){
     val snackBarHostState = remember { SnackbarHostState() }
     val signUpScope = rememberCoroutineScope()
@@ -52,9 +55,8 @@ fun SignInPage(
     var submitAttempted by remember {mutableStateOf(false)}
     var buttonEnabled by remember {mutableStateOf(true)}
     fun performValidationChecks(): Boolean = run {
-        isEmailOrUsernameError = !isEmailValid(emailOrUsername) || emailOrUsername.isBlank()
+        isEmailOrUsernameError = emailOrUsername.isBlank()
         isPasswordError = password.isBlank()
-        //TODO check username and password once backend is set up
         !(isEmailOrUsernameError || isPasswordError)
     }
 
@@ -89,7 +91,7 @@ fun SignInPage(
             onValueChange = {
                 emailOrUsername = it
             },
-            labelText = "Email",
+            labelText = "Email or Username",
             leadingIconResource = Res.drawable.icon_user,
             isError = isEmailOrUsernameError,
             errorText = "Invalid email"
@@ -111,8 +113,23 @@ fun SignInPage(
                 submitAttempted = true
                 buttonEnabled = performValidationChecks()
                 if (performValidationChecks()) {
-                    signUpScope.launch { snackBarHostState.showSnackbar("Sign in successful!") }
-                    //TODO: Sign up logic and individual error messages. Check for existing email/username too.
+                    signUpScope.launch {
+                        try {
+                            val user = signIn(emailOrUsername, password)
+                            snackBarHostState.showSnackbar("Sign in successful!")
+//                            delay(2000)
+                            onSignIn(user)
+                            //TODO Error messages for incorrect username/password
+                        } catch (_: HttpRequestException){
+                            snackBarHostState.showSnackbar("There was a network error. Please check your connection and try again.")
+                        } catch (e: Exception) {
+                            val errorMessage = e.message ?: "Unknown error"
+                            val friendlyMsg = if (errorMessage.contains("No rows"))
+                                "Wrong email / username / password."
+                            else errorMessage
+                            snackBarHostState.showSnackbar("Sign in failed: $errorMessage")
+                        }
+                    }
                 }
             },
             enabled = buttonEnabled,
