@@ -1,7 +1,11 @@
 package io.github.keanu365.studbud.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
@@ -21,7 +25,8 @@ import kotlinx.serialization.modules.polymorphic
 @Composable
 fun NavRoot(
     modifier: Modifier = Modifier,
-    appPrefs: AppPreferences
+    appPrefs: AppPreferences,
+    showSnackBar: (String) -> Unit
 ){
     val backStack = rememberNavBackStack(
         configuration = SavedStateConfiguration{
@@ -42,14 +47,24 @@ fun NavRoot(
         Route.SplashScreen
     )
 
+    var sharedEmail by remember {mutableStateOf("")}
+    var sharedUsername by remember {mutableStateOf("")}
+    var sharedPassword by remember {mutableStateOf("")}
+
     val coroutineScope = rememberCoroutineScope()
+    var splashLength by remember {mutableStateOf(SplashLength.MEDIUM)}
     fun onSignIn(user: User, key: NavKey) = run {
         coroutineScope.launch {
             appPrefs.saveSignIn(user.email, user.username)
             appPrefs.setFirstTimeUser(false)
             //TODO change this implementation when you do onboarding
         }
-        backStack.add(Route.ThemeTest)
+        sharedEmail = ""
+        sharedUsername = ""
+        sharedPassword = ""
+        showSnackBar("Signed in successfully!")
+        splashLength = SplashLength.SHORT
+        backStack.add(Route.SplashScreen)
         backStack.remove(key)
     }
     fun onSignOut(key: NavKey) = run {
@@ -57,7 +72,9 @@ fun NavRoot(
             supabase.auth.signOut()
             appPrefs.signOut()
         }
-        backStack.add(Route.SignInPage)
+        showSnackBar("Signed out successfully!")
+        splashLength = SplashLength.SHORT
+        backStack.add(Route.SplashScreen)
         backStack.remove(key)
     }
 
@@ -84,7 +101,8 @@ fun NavRoot(
                                     }
                                     backStack.remove(key)
                                 }
-                            }
+                            },
+                            length = splashLength
                         )
                     }
                 }
@@ -106,22 +124,32 @@ fun NavRoot(
                 Route.SignUpPage -> {
                     NavEntry(key) {
                         SignUpPage(
-                            onSignInClicked = {
+                            onSignInClicked = { emailOrUsername, password ->
                                 backStack.remove(key)
                                 backStack.add(Route.SignInPage)
+                                if (isEmailValid(emailOrUsername)) sharedEmail = emailOrUsername
+                                else sharedUsername = emailOrUsername
+                                sharedPassword = password
                             },
-                            onSignIn = { onSignIn(it, key) }
+                            onSignIn = { onSignIn(it, key) },
+                            fromEmail = sharedEmail,
+                            fromUsername = sharedUsername,
+                            fromPassword = sharedPassword
                         )
                     }
                 }
                 Route.SignInPage -> {
                     NavEntry(key) {
                         SignInPage(
-                            onSignUpClicked = {
+                            onSignUpClicked = { email, password ->
                                 backStack.remove(key)
                                 backStack.add(Route.SignUpPage)
+                                sharedEmail = email
+                                sharedPassword = password
                             },
-                            onSignIn = { onSignIn(it, key) }
+                            onSignIn = { onSignIn(it, key) },
+                            fromEmail = sharedEmail,
+                            fromPassword = sharedPassword
                         )
                     }
                 }
