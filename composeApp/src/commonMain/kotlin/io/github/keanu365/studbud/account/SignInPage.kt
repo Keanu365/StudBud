@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.keanu365.studbud.theme.buttonColors
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_lock
@@ -127,7 +126,7 @@ fun SignInPage(
                             val friendlyMsg = if (errorMessage.contains("No rows"))
                                 "Wrong email / username / password."
                             else errorMessage
-                            snackBarHostState.showSnackbar("Sign in failed: $errorMessage")
+                            snackBarHostState.showSnackbar("Sign in failed: $friendlyMsg")
                         }
                     }
                 }
