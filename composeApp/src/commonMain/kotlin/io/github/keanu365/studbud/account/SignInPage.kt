@@ -40,14 +40,16 @@ import studbud.composeapp.generated.resources.icon_user
 @Composable
 fun SignInPage(
     modifier: Modifier = Modifier,
-    onSignUpClicked: () -> Unit,
+    onSignUpClicked: (String, String) -> Unit,
+    fromEmail: String = "",
+    fromPassword: String = "",
     onSignIn: (User) -> Unit = {}
 ){
     val snackBarHostState = remember { SnackbarHostState() }
-    val signUpScope = rememberCoroutineScope()
+    val signInScope = rememberCoroutineScope()
 
-    var emailOrUsername by remember {mutableStateOf("")}
-    var password by remember { mutableStateOf("") }
+    var emailOrUsername by remember {mutableStateOf(fromEmail)}
+    var password by remember { mutableStateOf(fromPassword) }
 
     var isEmailOrUsernameError by remember {mutableStateOf(false)}
     var isPasswordError by remember {mutableStateOf(false)}
@@ -112,16 +114,16 @@ fun SignInPage(
                 submitAttempted = true
                 buttonEnabled = performValidationChecks()
                 if (performValidationChecks()) {
-                    signUpScope.launch {
+                    signInScope.launch {
                         try {
+                            buttonEnabled = false
                             val user = signIn(emailOrUsername, password)
-                            snackBarHostState.showSnackbar("Sign in successful!")
-//                            delay(2000)
                             onSignIn(user)
-                            //TODO Error messages for incorrect username/password
+                            //TODO: More robust SnackBar and error message logging for both SignInPage and SignUpPage
                         } catch (_: HttpRequestException){
                             snackBarHostState.showSnackbar("There was a network error. Please check your connection and try again.")
                         } catch (e: Exception) {
+                            buttonEnabled = true
                             val errorMessage = e.message ?: "Unknown error"
                             val friendlyMsg = if (errorMessage.contains("No rows"))
                                 "Wrong email / username / password."
@@ -164,7 +166,7 @@ fun SignInPage(
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
                     .clickable{
-                        onSignUpClicked()
+                        onSignUpClicked(emailOrUsername, password)
                     }
             )
         }

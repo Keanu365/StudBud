@@ -44,16 +44,24 @@ import kotlin.random.Random
 @Composable
 fun SplashScreen(
     viewModel: SplashScreenViewModel = viewModel { SplashScreenViewModel() },
+    length: SplashLength = SplashLength.MEDIUM,
     onEnd: () -> Unit
 ){
-    val screenShowTime = remember { Random.nextInt(2500, 5000) }
+    val screenShowTime = remember {
+        when (length) {
+            SplashLength.SHORT -> Random.nextInt(1500, 2500)
+            SplashLength.MEDIUM -> Random.nextInt(2500, 5000)
+            SplashLength.LONG -> Random.nextInt(5000, 8000)
+            SplashLength.FOREVER -> 0
+        }
+    }
     val tips by viewModel.tips.collectAsStateWithLifecycle()
     var animationChoice by remember { mutableStateOf(LogoAnimation.random()) }
     var tip by remember { mutableStateOf(tips[Random.nextInt(tips.size)]) }
 
     LaunchedEffect(Unit){
         delay(screenShowTime.toLong())
-        onEnd()
+        if (length != SplashLength.FOREVER) onEnd()
     }
 
     Surface(
@@ -78,6 +86,7 @@ fun SplashScreen(
                     animationChoice = animationChoice,
                 )
             }
+            if (length != SplashLength.SHORT)
             Text(
                 text = tip,
                 style = MaterialTheme.typography.headlineMedium,
@@ -86,6 +95,10 @@ fun SplashScreen(
             )
         }
     }
+}
+
+enum class SplashLength {
+    SHORT, MEDIUM, LONG, FOREVER
 }
 
 enum class LogoAnimation {

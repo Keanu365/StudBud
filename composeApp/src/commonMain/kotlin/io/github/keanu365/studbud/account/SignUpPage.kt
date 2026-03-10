@@ -43,16 +43,19 @@ import studbud.composeapp.generated.resources.icon_user
 @Composable
 fun SignUpPage(
     modifier: Modifier = Modifier,
-    onSignInClicked: () -> Unit,
+    onSignInClicked: (String, String) -> Unit,
+    fromEmail: String = "",
+    fromUsername: String = "",
+    fromPassword: String = "",
     onSignIn: (User) -> Unit = {}
 ){
     val snackBarHostState = remember { SnackbarHostState() }
     val signUpScope = rememberCoroutineScope()
 
-    var email by remember {mutableStateOf("")}
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember {mutableStateOf("")}
+    var email by remember {mutableStateOf(fromEmail)}
+    var username by remember { mutableStateOf(fromUsername) }
+    var password by remember { mutableStateOf(fromPassword) }
+    var confirmPassword by remember {mutableStateOf(password)}
 
     var isEmailError by remember {mutableStateOf(false)}
     var isUsernameError by remember {mutableStateOf(false)}
@@ -146,8 +149,9 @@ fun SignUpPage(
                         var snackBarMessage = ""
                         var signUpSuccessful = false
                         try {
+                            buttonEnabled = false
                             signUp(email, username, password)
-                            snackBarMessage = "Sign up successful!"
+                            snackBarMessage = ""
                             signUpSuccessful = true
                         } catch(_: HttpRequestException){
                             snackBarMessage = "A network error occurred. Please check your connection and try again."
@@ -157,7 +161,9 @@ fun SignUpPage(
                             snackBarMessage = "Sign up failed: $errorMessage"
                             println(e.message)
                         } finally {
-                            snackBarHostState.showSnackbar(snackBarMessage)
+                            buttonEnabled = true
+                            if (snackBarMessage.isNotBlank())
+                                snackBarHostState.showSnackbar(snackBarMessage)
                             if (signUpSuccessful) {
                                 val session = supabase.auth.currentSessionOrNull()
                                 val userId = session?.user?.id ?: ""
@@ -205,7 +211,7 @@ fun SignUpPage(
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
                     .clickable{
-                        onSignInClicked()
+                        onSignInClicked(email, password)
                     }
             )
         }
