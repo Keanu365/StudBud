@@ -30,6 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.exceptions.HttpRequestException
+import io.github.keanu365.studbud.supabase
 import io.github.keanu365.studbud.theme.buttonColors
 import kotlinx.coroutines.launch
 import studbud.composeapp.generated.resources.Res
@@ -40,7 +43,8 @@ import studbud.composeapp.generated.resources.icon_user
 @Composable
 fun SignUpPage(
     modifier: Modifier = Modifier,
-    onSignInClicked: () -> Unit
+    onSignInClicked: () -> Unit,
+    onSignIn: (User) -> Unit = {}
 ){
     val snackBarHostState = remember { SnackbarHostState() }
     val signUpScope = rememberCoroutineScope()
@@ -138,8 +142,34 @@ fun SignUpPage(
                 submitAttempted = true
                 buttonEnabled = performValidationChecks()
                 if (performValidationChecks()) {
-                    signUpScope.launch { snackBarHostState.showSnackbar("Sign up successful!") }
-                    //TODO: Sign up logic and individual error messages. Check for existing email/username too.
+                    signUpScope.launch {
+                        var snackBarMessage = ""
+                        var signUpSuccessful = false
+                        try {
+                            signUp(email, username, password)
+                            snackBarMessage = "Sign up successful!"
+                            signUpSuccessful = true
+                        } catch(_: HttpRequestException){
+                            snackBarMessage = "A network error occurred. Please check your connection and try again."
+                        } catch (e: Exception) {
+                            val errorMessage = e.message?.split(" ")[0]?.replace("_", " ")
+                                ?: "Unknown error"
+                            snackBarMessage = "Sign up failed: $errorMessage"
+                            println(e.message)
+                        } finally {
+                            snackBarHostState.showSnackbar(snackBarMessage)
+                            if (signUpSuccessful) {
+                                val session = supabase.auth.currentSessionOrNull()
+                                val userId = session?.user?.id ?: ""
+                                val currentUser = User(
+                                    id = userId,
+                                    email = email,
+                                    username = username
+                                )
+                                onSignIn(currentUser)
+                            }
+                        }
+                    }
                 }
             },
             enabled = buttonEnabled,

@@ -1,6 +1,7 @@
 package io.github.keanu365.studbud.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
@@ -9,14 +10,18 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
+import io.github.jan.supabase.auth.auth
 import io.github.keanu365.studbud.*
 import io.github.keanu365.studbud.account.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 
 @Composable
 fun NavRoot(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    appPrefs: AppPreferences
 ){
     val backStack = rememberNavBackStack(
         configuration = SavedStateConfiguration{
@@ -36,6 +41,26 @@ fun NavRoot(
         },
         Route.SplashScreen
     )
+
+    val coroutineScope = rememberCoroutineScope()
+    fun onSignIn(user: User, key: NavKey) = run {
+        coroutineScope.launch {
+            appPrefs.saveSignIn(user.email, user.username)
+            appPrefs.setFirstTimeUser(false)
+            //TODO change this implementation when you do onboarding
+        }
+        backStack.add(Route.ThemeTest)
+        backStack.remove(key)
+    }
+    fun onSignOut(key: NavKey) = run {
+        coroutineScope.launch {
+            supabase.auth.signOut()
+            appPrefs.signOut()
+        }
+        backStack.add(Route.SignInPage)
+        backStack.remove(key)
+    }
+
     NavDisplay(
         backStack = backStack,
         entryDecorators = listOf(
@@ -49,11 +74,16 @@ fun NavRoot(
                     NavEntry(key){
                         SplashScreen(
                             onEnd = {
-                                backStack.remove(key)
-                                backStack.add(Route.SignUpPage)
-//                                For Supabase testing. Currently works.
-//                                backStack.add(Route.SupabaseTest)
-//                                TODO: Logic for sign up / sign in / onboarding / homepage
+                                coroutineScope.launch {
+                                    if (appPrefs.signedIn.first()) {
+                                        backStack.add(Route.ThemeTest)
+                                    } else if (appPrefs.firstTimeUser.first()) {
+                                        backStack.add(Route.SignUpPage)
+                                    } else {
+                                        backStack.add(Route.SignInPage)
+                                    }
+                                    backStack.remove(key)
+                                }
                             }
                         )
                     }
@@ -63,7 +93,8 @@ fun NavRoot(
                         ThemeTest(
                             onReturn = {
                                 backStack.remove(key)
-                            }
+                            },
+                            onSignOut = { onSignOut(key) }
                         )
                     }
                 }
@@ -78,7 +109,8 @@ fun NavRoot(
                             onSignInClicked = {
                                 backStack.remove(key)
                                 backStack.add(Route.SignInPage)
-                            }
+                            },
+                            onSignIn = { onSignIn(it, key) }
                         )
                     }
                 }
@@ -88,7 +120,8 @@ fun NavRoot(
                             onSignUpClicked = {
                                 backStack.remove(key)
                                 backStack.add(Route.SignUpPage)
-                            }
+                            },
+                            onSignIn = { onSignIn(it, key) }
                         )
                     }
                 }

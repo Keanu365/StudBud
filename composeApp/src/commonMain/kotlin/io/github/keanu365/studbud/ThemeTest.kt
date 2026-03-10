@@ -24,7 +24,8 @@ import io.github.keanu365.studbud.theme.StudBudTheme
 
 @Composable
 fun ThemeTest(
-    onReturn: () -> Unit
+    onReturn: () -> Unit,
+    onSignOut: () -> Unit,
 ){
     var isDarkTheme by remember { mutableStateOf(false) }
     StudBudTheme(darkTheme = isDarkTheme) {
@@ -96,6 +97,17 @@ fun ThemeTest(
                     )
                 ) {
                     Text("This is a surface card")
+                }
+                Button(
+                    onClick = onSignOut,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary
+                    )
+                ) {
+                    Text(
+                        text = "Sign Out"
+                    )
                 }
             }
         }
