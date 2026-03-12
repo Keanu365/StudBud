@@ -1,5 +1,6 @@
 package io.github.keanu365.studbud.navigation
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +18,8 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.jan.supabase.auth.auth
 import io.github.keanu365.studbud.*
 import io.github.keanu365.studbud.account.*
+import io.github.keanu365.studbud.main.Homepage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
@@ -26,7 +29,8 @@ import kotlinx.serialization.modules.polymorphic
 fun NavRoot(
     modifier: Modifier = Modifier,
     appPrefs: AppPreferences,
-    showSnackBar: (String) -> Unit
+    showSnackBar: (String) -> Unit,
+    showTopBar: (Boolean) -> Unit = {}
 ){
     val backStack = rememberNavBackStack(
         configuration = SavedStateConfiguration{
@@ -41,6 +45,7 @@ fun NavRoot(
                     subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
                     subclass(Route.SignInPage::class, Route.SignInPage.serializer())
                     subclass(Route.SupabaseTest::class, Route.SupabaseTest.serializer())
+                    subclass(Route.Homepage::class, Route.Homepage.serializer())
                 }
             }
         },
@@ -55,7 +60,7 @@ fun NavRoot(
     var splashLength by remember {mutableStateOf(SplashLength.MEDIUM)}
     fun onSignIn(user: User, key: NavKey) = run {
         coroutineScope.launch {
-            appPrefs.saveSignIn(user.email, user.username)
+            appPrefs.saveSignIn(user.id)
             appPrefs.setFirstTimeUser(false)
             //TODO change this implementation when you do onboarding
         }
@@ -72,7 +77,6 @@ fun NavRoot(
             supabase.auth.signOut()
             appPrefs.signOut()
         }
-        showSnackBar("Signed out successfully!")
         splashLength = SplashLength.SHORT
         backStack.add(Route.SplashScreen)
         backStack.remove(key)
@@ -89,17 +93,22 @@ fun NavRoot(
                 // Same here!
                 Route.SplashScreen -> {
                     NavEntry(key){
+                        showTopBar(false)
                         SplashScreen(
+                            modifier = Modifier.fillMaxSize(),
                             onEnd = {
                                 coroutineScope.launch {
-                                    if (appPrefs.signedIn.first()) {
-                                        backStack.add(Route.ThemeTest)
+                                    val currentSession = supabase.auth.currentSessionOrNull()
+                                    if (currentSession != null || appPrefs.signedIn.first()) {
+                                        backStack.add(Route.Homepage)
                                     } else if (appPrefs.firstTimeUser.first()) {
                                         backStack.add(Route.SignUpPage)
                                     } else {
                                         backStack.add(Route.SignInPage)
                                     }
                                     backStack.remove(key)
+                                    delay(200)
+                                    showTopBar(true)
                                 }
                             },
                             length = splashLength
@@ -150,6 +159,13 @@ fun NavRoot(
                             onSignIn = { onSignIn(it, key) },
                             fromEmail = sharedEmail,
                             fromPassword = sharedPassword
+                        )
+                    }
+                }
+                Route.Homepage -> {
+                    NavEntry(key){
+                        Homepage(
+                            onSignOut = { onSignOut(key) }
                         )
                     }
                 }

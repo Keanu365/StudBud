@@ -8,7 +8,7 @@ val ButtonBlue = Color(0xFF248DFB)
 val ErrorRed = Color(0xFFD60000)
 
 val PriGreenDark = Color(0xFF128156)
-val LimeGreenDark = Color(0xFF038D11)
+val LimeGreenDark = Color(0xFF04A012)
 val ButtonBlueDark = Color(0xFF155AA2)
 val ErrorRedDark = Color(0xFF810000)
 

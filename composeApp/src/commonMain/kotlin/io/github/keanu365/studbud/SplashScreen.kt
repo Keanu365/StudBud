@@ -45,12 +45,13 @@ import kotlin.random.Random
 fun SplashScreen(
     viewModel: SplashScreenViewModel = viewModel { SplashScreenViewModel() },
     length: SplashLength = SplashLength.MEDIUM,
-    onEnd: () -> Unit
+    onEnd: () -> Unit,
+    modifier: Modifier = Modifier
 ){
     val screenShowTime = remember {
         when (length) {
-            SplashLength.SHORT -> Random.nextInt(1500, 2500)
-            SplashLength.MEDIUM -> Random.nextInt(2500, 5000)
+            SplashLength.SHORT -> Random.nextInt(1000, 2000)
+            SplashLength.MEDIUM -> Random.nextInt(2500, 4500)
             SplashLength.LONG -> Random.nextInt(5000, 8000)
             SplashLength.FOREVER -> 0
         }
@@ -65,7 +66,7 @@ fun SplashScreen(
     }
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         color = MaterialTheme.colorScheme.background
     ) {
         Column(
@@ -84,6 +85,7 @@ fun SplashScreen(
             ){
                 AnimatedLogo(
                     animationChoice = animationChoice,
+                    modifier = Modifier.offset(y = (-100).dp)
                 )
             }
             if (length != SplashLength.SHORT)
@@ -117,9 +119,9 @@ fun AnimatedLogo(
     Image(
         painter = painterResource(Res.drawable.studbud),
         contentDescription = "StudBud Logo",
-        modifier = animateLogo(animationChoice)
-            .then(modifier)
+        modifier = modifier
             .padding(20.dp)
+            .then(animateLogo(animationChoice))
     )
 }
 
