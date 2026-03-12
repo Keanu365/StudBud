@@ -47,10 +47,6 @@ suspend fun signIn(
     emailOrUsername: String,
     password: String
 ): User {
-    try {
-        supabase.auth.signOut()
-    } catch (_: Exception){}
-
     // 1. If it's an email, we can sign in to Auth immediately to establish the session
     val initialEmail = if (isEmailValid(emailOrUsername)) emailOrUsername else null
     if (initialEmail != null) {
@@ -63,7 +59,7 @@ suspend fun signIn(
     // 2. Fetch the profile with a retry mechanism
     var user: User? = null
     var attempts = 0
-    while (user == null && attempts < 3) {
+    while (user == null && attempts < 5) {
         try {
             user = supabase.from("profiles")
                 .select {

@@ -10,6 +10,8 @@ val supabase = createSupabaseClient(
     supabaseKey = "sb_publishable_JqT90Z2mK6aOa7sFsz9PpQ_7OMuWspd"
 ) {
     install(Postgrest)
-    install(Auth)
+    install(Auth){
+        alwaysAutoRefresh = true
+    }
     install(ComposeAuth)
 }

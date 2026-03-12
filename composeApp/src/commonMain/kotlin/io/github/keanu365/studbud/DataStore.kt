@@ -26,27 +26,23 @@ class AppPreferences(
     companion object {
         private val KEY_SIGNED_IN = booleanPreferencesKey("signed_in")
         private val KEY_FIRST_TIME_USER = booleanPreferencesKey("first_time_user")
-        private val KEY_USER_EMAIL = stringPreferencesKey("user_email")
-        private val KEY_USERNAME = stringPreferencesKey("username")
+        private val KEY_USER_ID = stringPreferencesKey("user_id")
     }
 
     val signedIn: Flow<Boolean> = dataStore.data.map { it[KEY_SIGNED_IN] ?: false }
     val firstTimeUser: Flow<Boolean> = dataStore.data.map { it[KEY_FIRST_TIME_USER] ?: true }
-    val userEmail: Flow<String> = dataStore.data.map { it[KEY_USER_EMAIL] ?: "" }
-    val username: Flow<String> = dataStore.data.map { it[KEY_USERNAME] ?: "" }
+    val userId: Flow<String> = dataStore.data.map { it[KEY_USER_ID] ?: "" }
 
-    suspend fun saveSignIn(email: String, username: String) {
+    suspend fun saveSignIn(id: String) {
         dataStore.edit { preferences ->
-            preferences[KEY_USER_EMAIL] = email
-            preferences[KEY_USERNAME] = username
+            preferences[KEY_USER_ID] = id
             preferences[KEY_SIGNED_IN] = true
         }
     }
     suspend fun signOut() {
         supabase.auth.signOut(scope = SignOutScope.LOCAL)
         dataStore.edit { preferences ->
-            preferences[KEY_USER_EMAIL] = ""
-            preferences[KEY_USERNAME] = ""
+            preferences[KEY_USER_ID] = ""
             preferences[KEY_SIGNED_IN] = false
         }
     }
@@ -55,9 +51,5 @@ class AppPreferences(
         dataStore.edit { preferences ->
             preferences[KEY_FIRST_TIME_USER] = isFirstTime
         }
-    }
-
-    suspend fun clearData() {
-        dataStore.edit { it.clear() }
     }
 }
