@@ -20,9 +20,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.jan.supabase.postgrest.from
+import io.github.keanu365.studbud.AppPreferences
+import io.github.keanu365.studbud.account.User
+import io.github.keanu365.studbud.supabase
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -33,13 +42,21 @@ import studbud.composeapp.generated.resources.icon_timer
 
 @Composable
 fun Homepage(
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    appPrefs: AppPreferences
 ){
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { Tabs.tabs.size })
     val currentTab = Tabs.tabs[pagerState.currentPage]
+    var user by remember { mutableStateOf<User?>(null) }
+
     LaunchedEffect(Unit){
         pagerState.scrollToPage(1)
+        user = supabase.from("profiles")
+            .select {
+                filter { eq("id", appPrefs.userId.first()) }
+            }
+            .decodeSingleOrNull<User>()
     }
 
     Scaffold(
@@ -93,7 +110,8 @@ fun Homepage(
                     Tabs.TIMER -> Timer()
                     Tabs.HOME -> Home()
                     Tabs.PROFILE -> Profile(
-                        onSignOut = onSignOut
+                        onSignOut = onSignOut,
+                        user = user
                     )
                 }
             }

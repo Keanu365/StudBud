@@ -165,7 +165,8 @@ fun NavRoot(
                 Route.Homepage -> {
                     NavEntry(key){
                         Homepage(
-                            onSignOut = { onSignOut(key) }
+                            onSignOut = { onSignOut(key) },
+                            appPrefs = appPrefs
                         )
                     }
                 }

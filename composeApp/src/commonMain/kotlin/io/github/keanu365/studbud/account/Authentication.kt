@@ -13,6 +13,9 @@ data class User(
     val id: String,
     val email: String,
     val username: String,
+    val avatar_url: String = "",
+    val studs: Int = 0,
+    val all_time_studs: Int = 0
 )
 
 private val emailAddressRegex = Regex(

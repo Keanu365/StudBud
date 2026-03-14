@@ -60,9 +60,12 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.postgrest.kt)
             implementation(libs.auth.kt)
+            implementation(libs.storage.kt)
             implementation(libs.compose.auth)
             implementation(libs.androidx.datastore)
             implementation(libs.androidx.datastore.preferences)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
