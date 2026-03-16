@@ -44,7 +44,6 @@ fun NavRoot(
                     subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
                     subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
                     subclass(Route.SignInPage::class, Route.SignInPage.serializer())
-                    subclass(Route.SupabaseTest::class, Route.SupabaseTest.serializer())
                     subclass(Route.Homepage::class, Route.Homepage.serializer())
                 }
             }
@@ -123,11 +122,6 @@ fun NavRoot(
                             },
                             onSignOut = { onSignOut(key) }
                         )
-                    }
-                }
-                Route.SupabaseTest -> {
-                    NavEntry(key) {
-                        SampleData()
                     }
                 }
                 Route.SignUpPage -> {

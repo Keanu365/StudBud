@@ -70,7 +70,7 @@ fun App() {
         else 70.dp
     }
     val spacerHeight = remember {
-        if (getDeviceType() == "Phone") 80.dp
+        if (getDeviceType() == "Phone") 60.dp
         else 70.dp
     }
 

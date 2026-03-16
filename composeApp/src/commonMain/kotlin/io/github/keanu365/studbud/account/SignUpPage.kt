@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
+import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
 import io.github.keanu365.studbud.theme.buttonColors
 import kotlinx.coroutines.launch

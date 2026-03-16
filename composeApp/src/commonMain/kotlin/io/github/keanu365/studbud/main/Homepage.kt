@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.AppPreferences
-import io.github.keanu365.studbud.account.User
+import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -108,7 +108,12 @@ fun Homepage(
             ){
                 when(Tabs.tabs[it]){
                     Tabs.TIMER -> Timer()
-                    Tabs.HOME -> Home()
+                    Tabs.HOME -> Home(
+                        user = user,
+                        onAddGroup = {
+                            //TODO
+                        }
+                    )
                     Tabs.PROFILE -> Profile(
                         onSignOut = onSignOut,
                         user = user

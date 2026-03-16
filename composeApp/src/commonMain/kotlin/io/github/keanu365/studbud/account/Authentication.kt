@@ -3,20 +3,11 @@ package io.github.keanu365.studbud.account
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
+import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-
-@Serializable
-data class User(
-    val id: String,
-    val email: String,
-    val username: String,
-    val avatar_url: String = "",
-    val studs: Int = 0,
-    val all_time_studs: Int = 0
-)
 
 private val emailAddressRegex = Regex(
     "[a-zA-Z0-9+._%\\-@]{1,256}" +
