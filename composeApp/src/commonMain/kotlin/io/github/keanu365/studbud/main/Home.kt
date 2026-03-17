@@ -2,6 +2,12 @@ package io.github.keanu365.studbud.main
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -23,13 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -39,11 +39,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.jan.supabase.postgrest.from
+import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.Group
-import io.github.keanu365.studbud.User
-import io.github.keanu365.studbud.supabase
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
@@ -52,12 +51,14 @@ import kotlin.time.Clock
 
 @Composable
 fun Home(
-    user: User?,
-    onAddGroup: () -> Unit //Might want to add the user as a parameter
+    groups: List<Group>,
+    assignments: List<Assignment>,
+    onAddGroup: () -> Unit,
+    showGroups: Boolean,
+    showAssignments: Boolean,
+    onShowGroup: (Boolean) -> Unit = {},
+    onShowAssignments: (Boolean) -> Unit = {}
 ){
-    val groups = remember { mutableStateListOf<Group>() }
-    var showGroups by remember {mutableStateOf(false)}
-    var showAssignments by remember {mutableStateOf(false)}
     val timeOfDay = remember {
         val hour = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time.hour
         when(hour) {
@@ -65,25 +66,6 @@ fun Home(
             in 12..17 -> "afternoon"
             else -> "evening"
         }
-    }
-
-    LaunchedEffect(user){
-        val currentGroups: List<Group>? = user?.let{
-            val userGroups = it.groups
-            val groupList = mutableListOf<Group>()
-            userGroups?.forEach{ groupId ->
-                val group = supabase.from("groups")
-                    .select {
-                        filter {
-                            eq("id", groupId)
-                        }
-                    }
-                    .decodeSingleOrNull<Group>()
-                if (group != null) groupList.add(group)
-            }
-            groupList
-        }
-        groups.addAll(currentGroups ?: emptyList())
     }
 
     Box(
@@ -106,88 +88,21 @@ fun Home(
                     .padding(bottom = 15.dp)
                     .fillMaxWidth()
             )
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ){
-                Text(
-                    text = "My groups",
-                    style = MaterialTheme.typography.labelLarge
-                )
-                IconButton(
-                    onClick = {showGroups = !showGroups},
-                    modifier = Modifier
-                ){
-                    Icon(
-                        painter = painterResource(Res.drawable.icon_arrow_dropdown),
-                        contentDescription = null,
-                        modifier = animateDropdown(showGroups)
-                    )
-                }
-            }
-            AnimatedVisibility(showGroups){
-                Spacer(modifier = Modifier.height(10.dp))
-                var counter = 0
-                Column{
-                    groups.forEach { group ->
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    color = if (counter % 2 == 0) Color.Transparent
-                                    else MaterialTheme.colorScheme.surface,
-                                    shape = RoundedCornerShape(5.dp)
-                                )
-                        ){
-                            Text(
-                                text = group.name,
-                                fontSize = 16.sp,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .padding(start = 5.dp)
-                                    .fillMaxWidth(0.55f)
-                                    .horizontalScroll(rememberScrollState()) //In case name is too long
-                            )
-                            Text(
-                                text = "${group.members.size} member${if (group.members.size != 1) "s" else ""}",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Light,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        counter++
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+            AnimatedDropdown(
+                show = showGroups,
+                title = "My groups",
+                secondLabel = "Members",
+                dataList = groups,
+                onShowChanged = {onShowGroup(it)}
+            )
             Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ){
-                Text(
-                    text = "My assignments",
-                    style = MaterialTheme.typography.labelLarge
-                )
-                IconButton(
-                    onClick = {showAssignments = !showAssignments},
-                    modifier = Modifier
-                ){
-                    Icon(
-                        painter = painterResource(Res.drawable.icon_arrow_dropdown),
-                        contentDescription = null,
-                        modifier = animateDropdown(showAssignments)
-                    )
-                }
-            }
-            AnimatedVisibility(showAssignments){
-                //Placeholder
-                Spacer(modifier = Modifier.height(50.dp))
-            }
+            AnimatedDropdown(
+                show = showAssignments,
+                title = "My assignments",
+                secondLabel = "Due Date",
+                dataList = assignments,
+                onShowChanged = {onShowAssignments(it)}
+            )
         }
         Button(
             onClick = onAddGroup,
@@ -203,6 +118,112 @@ fun Home(
                 text = "Join/Create a Group",
                 fontWeight = FontWeight.SemiBold,
             )
+        }
+    }
+}
+
+@Composable
+private fun AnimatedDropdown(
+    show: Boolean,
+    title: String,
+    firstLabel: String = "Name",
+    secondLabel: String = " ",
+    dataList: List<Any>,
+    onShowChanged: (Boolean) -> Unit = {}
+){
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ){
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge
+        )
+        IconButton(
+            onClick = {
+                onShowChanged(!show)
+            },
+            modifier = Modifier
+        ){
+            Icon(
+                painter = painterResource(Res.drawable.icon_arrow_dropdown),
+                contentDescription = null,
+                modifier = animateDropdown(show)
+            )
+        }
+    }
+    AnimatedVisibility(
+        visible = show,
+        enter = slideInVertically(initialOffsetY = { -40 }) + expandVertically(
+            expandFrom = Alignment.Top
+        ) + fadeIn(initialAlpha = 0.3f),
+        exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkVertically(
+            shrinkTowards = Alignment.Top
+        ) + fadeOut()
+    ){
+        Column(Modifier.padding(vertical = 10.dp)){
+            if (dataList.isEmpty()) Text(
+                text = "Nothing to see here yet!",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) else Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 5.dp)
+            ){
+                Text(
+                    text = firstLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = secondLabel,
+                    textAlign = TextAlign.End,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            dataList.forEachIndexed { index, data ->
+                var firstText = ""
+                var secondText = ""
+                if (data is Group) {
+                    firstText = data.name
+                    secondText = "${data.members.size}"
+                } else if (data is Assignment){
+                    firstText = data.name
+                    secondText = "${data.due_date.day}/${data.due_date.month.number}/${data.due_date.year}"
+                }
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = if (index % 2 == 0) Color.Transparent
+                            else MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(5.dp)
+                        )
+                ){
+                    Text(
+                        text = firstText,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .padding(start = 5.dp)
+                            .fillMaxWidth(0.6f)
+                            .horizontalScroll(rememberScrollState()) //In case name is too long
+                    )
+                    Text(
+                        text = secondText,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.padding(horizontal = 5.dp).fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }

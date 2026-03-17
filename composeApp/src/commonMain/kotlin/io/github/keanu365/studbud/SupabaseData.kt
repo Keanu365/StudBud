@@ -19,14 +19,15 @@ data class Group(
     val id: String,
     val name: String,
     val description: String,
-    val members: List<String>
+    val members: List<String>,
+    val assignments: List<String>
 )
 @Serializable
 data class Assignment(
     val id: String,
     val name: String,
-    val createdAt: Instant,
-    val dueDate: LocalDate,
+    val created_at: Instant,
+    val due_date: LocalDate,
     val group_id: String,
     val description: String,
 )

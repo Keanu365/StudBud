@@ -11,6 +11,7 @@ androidx-lifecycle = "2.10.0-beta01"
 #androidx-testExt = "1.3.0"
 composeHotReload = "1.0.0"
 composeMultiplatform = "1.10.2"
+connectivityKmp = "0.0.2"
 datastore = "1.2.1"
 #junit = "4.13.2"
 kotlin = "2.3.20"
@@ -24,6 +25,7 @@ coil3 = "3.4.0"
 androidx-startup = { module = "androidx.startup:startup-runtime", version = "1.2.0" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+connectivity-kmp = { module = "io.github.khubaibkhan4:connectivity-kmp", version.ref = "connectivityKmp" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 #kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 #junit = { module = "junit:junit", version.ref = "junit" }

@@ -16,10 +16,17 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.jan.supabase.auth.auth
-import io.github.keanu365.studbud.*
-import io.github.keanu365.studbud.account.*
+import io.github.jan.supabase.exceptions.HttpRequestException
+import io.github.keanu365.studbud.AppPreferences
+import io.github.keanu365.studbud.SplashLength
+import io.github.keanu365.studbud.SplashScreen
+import io.github.keanu365.studbud.ThemeTest
+import io.github.keanu365.studbud.User
+import io.github.keanu365.studbud.account.SignInPage
+import io.github.keanu365.studbud.account.SignUpPage
+import io.github.keanu365.studbud.account.isEmailValid
 import io.github.keanu365.studbud.main.Homepage
-import kotlinx.coroutines.delay
+import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
@@ -32,6 +39,7 @@ fun NavRoot(
     showSnackBar: (String) -> Unit,
     showTopBar: (Boolean) -> Unit = {}
 ){
+    val coroutineScope = rememberCoroutineScope()
     val backStack = rememberNavBackStack(
         configuration = SavedStateConfiguration{
             serializersModule = SerializersModule{
@@ -55,7 +63,6 @@ fun NavRoot(
     var sharedUsername by remember {mutableStateOf("")}
     var sharedPassword by remember {mutableStateOf("")}
 
-    val coroutineScope = rememberCoroutineScope()
     var splashLength by remember {mutableStateOf(SplashLength.MEDIUM)}
     fun onSignIn(user: User, key: NavKey) = run {
         coroutineScope.launch {
@@ -97,17 +104,24 @@ fun NavRoot(
                             modifier = Modifier.fillMaxSize(),
                             onEnd = {
                                 coroutineScope.launch {
-                                    val currentSession = supabase.auth.currentSessionOrNull()
-                                    if (currentSession != null || appPrefs.signedIn.first()) {
-                                        backStack.add(Route.Homepage)
-                                    } else if (appPrefs.firstTimeUser.first()) {
-                                        backStack.add(Route.SignUpPage)
-                                    } else {
-                                        backStack.add(Route.SignInPage)
+                                    try {
+                                        val currentSession = supabase.auth.currentSessionOrNull()
+                                        val nextRoute = if (currentSession != null || appPrefs.signedIn.first()) {
+                                            Route.Homepage
+                                        } else if (appPrefs.firstTimeUser.first()) {
+                                            Route.SignUpPage
+                                        } else {
+                                            Route.SignInPage
+                                        }
+                                        backStack.add(nextRoute)
+                                    } catch (e: HttpRequestException) {
+                                        e.printStackTrace()
+                                        if (appPrefs.signedIn.first()) backStack.add(Route.Homepage)
+                                        else backStack.add(Route.SignInPage)
+                                    } finally {
+                                        backStack.remove(key)
+                                        showTopBar(true)
                                     }
-                                    backStack.remove(key)
-                                    delay(200)
-                                    showTopBar(true)
                                 }
                             },
                             length = splashLength

@@ -21,18 +21,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.AppPreferences
+import io.github.keanu365.studbud.Assignment
+import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
@@ -46,17 +52,66 @@ fun Homepage(
     appPrefs: AppPreferences
 ){
     val coroutineScope = rememberCoroutineScope()
+    val networkStatus by rememberNetworkStatus()
     val pagerState = rememberPagerState(pageCount = { Tabs.tabs.size })
     val currentTab = Tabs.tabs[pagerState.currentPage]
+
     var user by remember { mutableStateOf<User?>(null) }
+    val groups = remember { mutableStateListOf<Group>() }
+    val assignments = remember {mutableStateListOf<Assignment>()}
+
+    var showGroups by rememberSaveable { mutableStateOf(false) }
+    var showAssignments by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit){
         pagerState.scrollToPage(1)
-        user = supabase.from("profiles")
-            .select {
-                filter { eq("id", appPrefs.userId.first()) }
+    }
+    LaunchedEffect(networkStatus){
+        try {
+            //User
+            user = supabase.from("profiles")
+                .select {
+                    filter { eq("id", appPrefs.userId.first()) }
+                }
+                .decodeSingleOrNull<User>()
+            //Groups
+            val currentGroups: List<Group>? = user?.let{
+                val userGroups = it.groups
+                val groupList = mutableListOf<Group>()
+                userGroups?.forEach{ groupId ->
+                    val group = supabase.from("groups")
+                        .select {
+                            filter {
+                                eq("id", groupId)
+                            }
+                        }
+                        .decodeSingleOrNull<Group>()
+                    if (group != null) groupList.add(group)
+                }
+                groupList
             }
-            .decodeSingleOrNull<User>()
+            groups.addAll(currentGroups ?: emptyList())
+            //Assignments
+            groups.forEach { group ->
+                group.assignments.forEach { assignmentId ->
+                    val assignment = supabase.from("assignments")
+                        .select {
+                            filter {
+                                eq("id", assignmentId)
+                            }
+                        }
+                        .decodeSingleOrNull<Assignment>()
+                    if (assignment != null) assignments.add(assignment)
+                }
+            }
+            //And finally store it locally in case user is offline the next time round
+            appPrefs.saveRawData(user, groups, assignments)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            user = Json.decodeFromString(appPrefs.rawUserData.first())
+            groups.addAll(Json.decodeFromString(appPrefs.rawGroupsData.first()))
+            assignments.addAll(Json.decodeFromString(appPrefs.rawAssignmentsData.first()))
+        }
     }
 
     Scaffold(
@@ -109,10 +164,15 @@ fun Homepage(
                 when(Tabs.tabs[it]){
                     Tabs.TIMER -> Timer()
                     Tabs.HOME -> Home(
-                        user = user,
                         onAddGroup = {
                             //TODO
-                        }
+                        },
+                        groups = groups,
+                        assignments = assignments,
+                        showGroups = showGroups,
+                        showAssignments = showAssignments,
+                        onShowGroup = {show -> showGroups = show},
+                        onShowAssignments = {show -> showAssignments = show}
                     )
                     Tabs.PROFILE -> Profile(
                         onSignOut = onSignOut,

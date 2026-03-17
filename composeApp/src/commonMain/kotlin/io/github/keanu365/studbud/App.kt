@@ -1,11 +1,13 @@
 package io.github.keanu365.studbud
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,16 +38,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.keanu365.studbud.navigation.NavRoot
 import io.github.keanu365.studbud.theme.StudBudTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import my.connectivity.kmp.data.model.NetworkStatus
+import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_arrow_back
@@ -74,6 +83,32 @@ fun App() {
         else 70.dp
     }
 
+    var networkVisible by remember {mutableStateOf(false)}
+    var networkText by remember {mutableStateOf("No Internet Connection")}
+    val surface = Color(0xFFBDBDBD)
+    var networkBg by remember {mutableStateOf(surface)}
+    val networkBgAnimation = animateColorAsState(
+        targetValue = networkBg,
+        animationSpec = tween(durationMillis = 500)
+    )
+    val isNetworkAvailable by rememberNetworkStatus()
+    val primary = Color(0xFF1AB876)
+    LaunchedEffect(isNetworkAvailable){
+        delay(2000) //Buffer
+        if (isNetworkAvailable == NetworkStatus.Available){
+            if (networkVisible){
+                networkText = "Connected to Internet!"
+                networkBg = primary
+                delay(5000)
+                networkVisible = false
+            }
+        } else {
+            networkText = "No Internet Connection${if (appPrefs.signedIn.first()) "\nData loaded from storage" else ""}"
+            networkBg = surface
+            networkVisible = true
+        }
+    }
+
     StudBudTheme {
         Scaffold(
             snackbarHost = {
@@ -97,6 +132,25 @@ fun App() {
                     Spacer(
                         modifier = Modifier.height(spacerHeight)
                     )
+                    AnimatedVisibility(
+                        visible = networkVisible && showTopBar,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(networkBgAnimation.value)
+                    ){
+                        Column{
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = networkText,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(5.dp))
+                        }
+                    }
                     NavRoot(
                         modifier = Modifier
                             .pointerInput(Unit) {

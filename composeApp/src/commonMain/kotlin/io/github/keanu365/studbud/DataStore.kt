@@ -10,6 +10,7 @@ import io.github.jan.supabase.auth.SignOutScope
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 import okio.Path.Companion.toPath
 
 expect fun producePath(): String
@@ -27,11 +28,19 @@ class AppPreferences(
         private val KEY_SIGNED_IN = booleanPreferencesKey("signed_in")
         private val KEY_FIRST_TIME_USER = booleanPreferencesKey("first_time_user")
         private val KEY_USER_ID = stringPreferencesKey("user_id")
+        //Sorry that there was no better way to do this :(
+        private val KEY_RAW_USER_DATA = stringPreferencesKey("raw_user_data")
+        private val KEY_RAW_GROUPS_DATA = stringPreferencesKey("raw_groups_data")
+        private val KEY_RAW_ASSIGNMENTS_DATA = stringPreferencesKey("raw_assignments_data")
     }
 
     val signedIn: Flow<Boolean> = dataStore.data.map { it[KEY_SIGNED_IN] ?: false }
     val firstTimeUser: Flow<Boolean> = dataStore.data.map { it[KEY_FIRST_TIME_USER] ?: true }
     val userId: Flow<String> = dataStore.data.map { it[KEY_USER_ID] ?: "" }
+    val rawUserData: Flow<String> = dataStore.data.map { it[KEY_RAW_USER_DATA] ?: "" }
+    val rawGroupsData: Flow<String> = dataStore.data.map { it[KEY_RAW_GROUPS_DATA] ?: "" }
+    val rawAssignmentsData: Flow<String> = dataStore.data.map { it[KEY_RAW_ASSIGNMENTS_DATA] ?: "" }
+
 
     suspend fun saveSignIn(id: String) {
         dataStore.edit { preferences ->
@@ -44,12 +53,27 @@ class AppPreferences(
         dataStore.edit { preferences ->
             preferences[KEY_USER_ID] = ""
             preferences[KEY_SIGNED_IN] = false
+            preferences[KEY_RAW_USER_DATA] = ""
+            preferences[KEY_RAW_GROUPS_DATA] = ""
+            preferences[KEY_RAW_ASSIGNMENTS_DATA] = ""
         }
     }
 
     suspend fun setFirstTimeUser(isFirstTime: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_FIRST_TIME_USER] = isFirstTime
+        }
+    }
+
+    suspend fun saveRawData(
+        user: User?,
+        groups: List<Group>,
+        assignments: List<Assignment>
+    ){
+        dataStore.edit { preferences ->
+            preferences[KEY_RAW_USER_DATA] = Json.encodeToString(user).also { println(it) }
+            preferences[KEY_RAW_GROUPS_DATA] = Json.encodeToString(groups).also{ println(it) }
+            preferences[KEY_RAW_ASSIGNMENTS_DATA] = Json.encodeToString(assignments).also{ println(it) }
         }
     }
 }

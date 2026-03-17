@@ -66,6 +66,7 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
+            implementation(libs.connectivity.kmp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

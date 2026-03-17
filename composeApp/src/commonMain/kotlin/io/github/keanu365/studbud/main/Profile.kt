@@ -1,5 +1,6 @@
 package io.github.keanu365.studbud.main
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ import coil3.compose.AsyncImage
 import io.github.keanu365.studbud.User
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
+import studbud.composeapp.generated.resources.default
 import studbud.composeapp.generated.resources.icon_error
 import studbud.composeapp.generated.resources.icon_replace_image
 import studbud.composeapp.generated.resources.icon_visible
@@ -109,9 +111,25 @@ fun Profile(
                 .verticalScroll(rememberScrollState())
         ){
             Box{
-                AsyncImage(
-                    model = user?.avatar_url
-                        ?: "https://dyikkrnyteudomofjrdz.supabase.co/storage/v1/object/public/avatars/default.png",
+                user?.let{ user ->
+                    AsyncImage(
+                        model = user.avatar_url,
+                        contentDescription = "Profile Picture",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .padding(bottom = 30.dp)
+                            .height(250.dp)
+                            .aspectRatio(1f)
+                            .clip(CircleShape)
+                            .pointerInput(Unit) {
+                                detectTapGestures {
+                                    tapOffset = it
+                                    showDropdownMenu = true
+                                }
+                            }
+                    )
+                } ?: Image(
+                    painter = painterResource(Res.drawable.default),
                     contentDescription = "Profile Picture",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
