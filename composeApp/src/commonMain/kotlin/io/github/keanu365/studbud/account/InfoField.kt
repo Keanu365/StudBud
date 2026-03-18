@@ -51,8 +51,8 @@ fun InfoField(
             value = value,
             onValueChange = { onValueChange(it) },
             label = { Text(labelText) },
-            leadingIcon = {
-                leadingIconResource?.let{
+            leadingIcon = leadingIconResource?.let{
+                {
                     Icon(
                         painter = painterResource(it),
                         contentDescription = null,

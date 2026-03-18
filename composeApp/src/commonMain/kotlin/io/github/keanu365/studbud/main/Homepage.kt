@@ -38,6 +38,7 @@ import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import my.connectivity.kmp.data.model.NetworkStatus
 import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -49,7 +50,9 @@ import studbud.composeapp.generated.resources.icon_timer
 @Composable
 fun Homepage(
     onSignOut: () -> Unit,
-    appPrefs: AppPreferences
+    appPrefs: AppPreferences,
+    showSnackBar: (String) -> Unit,
+    onAddGroup: (User) -> Unit
 ){
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
@@ -68,6 +71,8 @@ fun Homepage(
     }
     LaunchedEffect(networkStatus){
         try {
+            groups.clear()
+            assignments.clear()
             //User
             user = supabase.from("profiles")
                 .select {
@@ -165,7 +170,17 @@ fun Homepage(
                     Tabs.TIMER -> Timer()
                     Tabs.HOME -> Home(
                         onAddGroup = {
-                            //TODO
+                            if (networkStatus != NetworkStatus.Available){
+                                showSnackBar("Please connect to the Internet!")
+                            } else {
+                                try {
+                                    onAddGroup(user!!)
+                                } catch (_: NullPointerException) {
+                                    showSnackBar("Error fetching user data. Please wait a moment before trying again.")
+                                } catch (_: Exception) {
+                                    showSnackBar("Something went wrong. Please try again later.")
+                                }
+                            }
                         },
                         groups = groups,
                         assignments = assignments,
@@ -175,10 +190,21 @@ fun Homepage(
                         onShowAssignments = {show -> showAssignments = show}
                     )
                     Tabs.PROFILE -> Profile(
-                        onSignOut = onSignOut,
+                        onSignOut = {
+                            if (networkStatus != NetworkStatus.Available){
+                                showSnackBar("Please connect to the Internet!")
+                            } else {
+                                try {
+                                    onSignOut()
+                                } catch (_: Exception) {
+                                    showSnackBar("Something went wrong. Please try again later.")
+                                }
+                            }
+                        },
                         user = user
                     )
                 }
+                Spacer(Modifier.height(60.dp)) //Buffer for buttons
             }
         }
     }

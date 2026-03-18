@@ -38,7 +38,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -47,11 +46,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.keanu365.studbud.navigation.NavRoot
+import io.github.keanu365.studbud.navigation.Route
 import io.github.keanu365.studbud.theme.StudBudTheme
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
 import my.connectivity.kmp.data.model.NetworkStatus
 import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.painterResource
@@ -73,7 +77,29 @@ fun App() {
     val snackBarHostState = remember { SnackbarHostState() }
     val mainAppScope = rememberCoroutineScope()
 
+    val backStack = rememberNavBackStack(
+        configuration = SavedStateConfiguration{
+            serializersModule = SerializersModule{
+                polymorphic(NavKey::class){
+                    // All future screens need to be added here,
+                    // like intents in AndroidManifest.xml.
+                    // Don't forget to do so at Line 35 too!
+                    // Oh, and go serialize this in Route.kt before doing this
+                    subclass(Route.SplashScreen::class, Route.SplashScreen.serializer())
+                    subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
+                    subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
+                    subclass(Route.SignInPage::class, Route.SignInPage.serializer())
+                    subclass(Route.Homepage::class, Route.Homepage.serializer())
+                    subclass(Route.AddGroupPage::class, Route.AddGroupPage.serializer())
+                }
+            }
+        },
+        Route.SplashScreen
+    )
+
     var showTopBar by remember { mutableStateOf(false) }
+    var showBackArrow by remember { mutableStateOf(false) }
+    var showActions by remember { mutableStateOf(false) }
     val topBarHeight = remember {
         if (getDeviceType() == "Phone") 100.dp
         else 70.dp
@@ -83,33 +109,39 @@ fun App() {
         else 70.dp
     }
 
-    var networkVisible by remember {mutableStateOf(false)}
-    var networkText by remember {mutableStateOf("No Internet Connection")}
-    val surface = Color(0xFFBDBDBD)
-    var networkBg by remember {mutableStateOf(surface)}
-    val networkBgAnimation = animateColorAsState(
-        targetValue = networkBg,
-        animationSpec = tween(durationMillis = 500)
-    )
     val isNetworkAvailable by rememberNetworkStatus()
-    val primary = Color(0xFF1AB876)
-    LaunchedEffect(isNetworkAvailable){
-        delay(2000) //Buffer
-        if (isNetworkAvailable == NetworkStatus.Available){
-            if (networkVisible){
-                networkText = "Connected to Internet!"
-                networkBg = primary
-                delay(5000)
+    var networkText by remember {mutableStateOf("No Internet Connection")}
+    var networkVisible by remember {mutableStateOf(false)}
+    var hasShownFirstConnection by remember { mutableStateOf(false) }
+    LaunchedEffect(isNetworkAvailable) {
+        if (isNetworkAvailable == NetworkStatus.Available) {
+            if (!hasShownFirstConnection) {
+                hasShownFirstConnection = true
                 networkVisible = false
+            } else {
+                if (networkVisible) {
+                    networkText = "Connected to Internet!"
+                    delay(5000)
+                    networkVisible = false
+                }
             }
         } else {
-            networkText = "No Internet Connection${if (appPrefs.signedIn.first()) "\nData loaded from storage" else ""}"
-            networkBg = surface
+            networkText = "No Internet Connection"
             networkVisible = true
+            hasShownFirstConnection = true
         }
     }
-
     StudBudTheme {
+        val networkBgAnimation = animateColorAsState(
+            targetValue = if (isNetworkAvailable == NetworkStatus.Available) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.surface,
+            animationSpec = tween(durationMillis = 500)
+        )
+        val networkTextColorAnimation = animateColorAsState(
+            targetValue = if (isNetworkAvailable == NetworkStatus.Available) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurface,
+            animationSpec = tween(durationMillis = 500)
+        )
         Scaffold(
             snackbarHost = {
                 SnackbarHost(
@@ -142,7 +174,7 @@ fun App() {
                             Spacer(Modifier.height(10.dp))
                             Text(
                                 text = networkText,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = networkTextColorAnimation.value,
                                 fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
@@ -151,7 +183,9 @@ fun App() {
                             Spacer(Modifier.height(5.dp))
                         }
                     }
+                    if (getDeviceType() != "Phone") Spacer(Modifier.height(15.dp))
                     NavRoot(
+                        backStack = backStack,
                         modifier = Modifier
                             .pointerInput(Unit) {
                                 detectTapGestures {
@@ -165,7 +199,11 @@ fun App() {
                                 snackBarHostState.showSnackbar(message)
                             }
                         },
-                        showTopBar = {showTopBar = it}
+                        changeTopBar = { showBar, showBack, newShowActions ->
+                            showTopBar = showBar
+                            showBackArrow = showBack
+                            showActions = newShowActions
+                        }
                     )
                 }
                 //Top app bar
@@ -200,9 +238,10 @@ fun App() {
                             }
                         },
                         navigationIcon = {
+                            if (showBackArrow)
                             IconButton(
                                 onClick = {
-                                    //TODO
+                                    backStack.removeLast()
                                 }
                             ){
                                 Icon(
@@ -213,26 +252,28 @@ fun App() {
                             }
                         },
                         actions = {
-                            IconButton(
-                                onClick = {
-                                    //TODO
+                            if (showActions){
+                                IconButton(
+                                    onClick = {
+                                        //TODO
+                                    }
+                                ){
+                                    Icon(
+                                        painter = painterResource(Res.drawable.icon_leaderboard),
+                                        contentDescription = "Leaderboard",
+                                        modifier = Modifier.size(32.dp)
+                                    )
                                 }
-                            ){
-                                Icon(
-                                    painter = painterResource(Res.drawable.icon_leaderboard),
-                                    contentDescription = "Leaderboard",
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    //TODO
+                                IconButton(
+                                    onClick = {
+                                        //TODO
+                                    }
+                                ){
+                                    Icon(
+                                        painter = painterResource(Res.drawable.icon_settings),
+                                        contentDescription = "Settings"
+                                    )
                                 }
-                            ){
-                                Icon(
-                                    painter = painterResource(Res.drawable.icon_settings),
-                                    contentDescription = "Settings"
-                                )
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(

@@ -2,6 +2,7 @@ package io.github.keanu365.studbud.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -9,12 +10,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.keanu365.studbud.AppPreferences
@@ -25,39 +25,22 @@ import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.account.SignInPage
 import io.github.keanu365.studbud.account.SignUpPage
 import io.github.keanu365.studbud.account.isEmailValid
+import io.github.keanu365.studbud.main.AddGroupPage
 import io.github.keanu365.studbud.main.Homepage
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
 
 @Composable
 fun NavRoot(
+    backStack: NavBackStack<NavKey>,
     modifier: Modifier = Modifier,
     appPrefs: AppPreferences,
     showSnackBar: (String) -> Unit,
-    showTopBar: (Boolean) -> Unit = {}
+    changeTopBar: (Boolean, Boolean, Boolean) -> Unit = {_, _, _ ->} //showBar, showBack, showActions
 ){
     val coroutineScope = rememberCoroutineScope()
-    val backStack = rememberNavBackStack(
-        configuration = SavedStateConfiguration{
-            serializersModule = SerializersModule{
-                polymorphic(NavKey::class){
-                    // All future screens need to be added here,
-                    // like intents in AndroidManifest.xml.
-                    // Don't forget to do so at Line 35 too!
-                    // Oh, and go serialize this in Route.kt before doing this
-                    subclass(Route.SplashScreen::class, Route.SplashScreen.serializer())
-                    subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
-                    subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
-                    subclass(Route.SignInPage::class, Route.SignInPage.serializer())
-                    subclass(Route.Homepage::class, Route.Homepage.serializer())
-                }
-            }
-        },
-        Route.SplashScreen
-    )
+    var user by remember { mutableStateOf<User?>(null) }
 
     var sharedEmail by remember {mutableStateOf("")}
     var sharedUsername by remember {mutableStateOf("")}
@@ -88,6 +71,22 @@ fun NavRoot(
         backStack.remove(key)
     }
 
+    //Indicate here if you want back arrow / actions
+    val showBackKeys = listOf<Route>(
+        Route.AddGroupPage
+    )
+    val showActionsKeys = listOf(
+        Route.ThemeTest,
+        Route.Homepage
+    )
+    LaunchedEffect(backStack.last()){
+        changeTopBar(
+            backStack.last() != Route.SplashScreen,
+            showBackKeys.contains(backStack.last()),
+            showActionsKeys.contains(backStack.last())
+        )
+    }
+
     NavDisplay(
         backStack = backStack,
         entryDecorators = listOf(
@@ -99,7 +98,6 @@ fun NavRoot(
                 // Same here!
                 Route.SplashScreen -> {
                     NavEntry(key){
-                        showTopBar(false)
                         SplashScreen(
                             modifier = Modifier.fillMaxSize(),
                             onEnd = {
@@ -120,7 +118,6 @@ fun NavRoot(
                                         else backStack.add(Route.SignInPage)
                                     } finally {
                                         backStack.remove(key)
-                                        showTopBar(true)
                                     }
                                 }
                             },
@@ -174,7 +171,23 @@ fun NavRoot(
                     NavEntry(key){
                         Homepage(
                             onSignOut = { onSignOut(key) },
-                            appPrefs = appPrefs
+                            appPrefs = appPrefs,
+                            showSnackBar = {showSnackBar(it)},
+                            onAddGroup = {
+                                user = it
+                                backStack.add(Route.AddGroupPage)
+                            }
+                        )
+                    }
+                }
+                Route.AddGroupPage -> {
+                    NavEntry(key) {
+                        AddGroupPage(
+                            user = user!!,
+                            onJoin = {
+                                backStack.remove(key)
+                            },
+                            showSnackBar = {showSnackBar(it)}
                         )
                     }
                 }

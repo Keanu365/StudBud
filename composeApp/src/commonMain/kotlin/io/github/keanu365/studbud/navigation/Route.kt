@@ -15,4 +15,7 @@ sealed interface Route: NavKey {
     data object SignInPage: Route, NavKey
     @Serializable
     data object Homepage: Route, NavKey
+    @Serializable
+    data object AddGroupPage: Route, NavKey
+
 }
