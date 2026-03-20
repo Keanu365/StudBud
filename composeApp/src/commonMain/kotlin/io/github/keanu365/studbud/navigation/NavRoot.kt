@@ -18,6 +18,8 @@ import androidx.navigation3.ui.NavDisplay
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.keanu365.studbud.AppPreferences
+import io.github.keanu365.studbud.Assignment
+import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.SplashLength
 import io.github.keanu365.studbud.SplashScreen
 import io.github.keanu365.studbud.ThemeTest
@@ -26,6 +28,8 @@ import io.github.keanu365.studbud.account.SignInPage
 import io.github.keanu365.studbud.account.SignUpPage
 import io.github.keanu365.studbud.account.isEmailValid
 import io.github.keanu365.studbud.main.AddGroupPage
+import io.github.keanu365.studbud.main.AssignmentDetailsPage
+import io.github.keanu365.studbud.main.GroupDetailsPage
 import io.github.keanu365.studbud.main.Homepage
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
@@ -41,6 +45,8 @@ fun NavRoot(
 ){
     val coroutineScope = rememberCoroutineScope()
     var user by remember { mutableStateOf<User?>(null) }
+    var groupInFocus by remember { mutableStateOf<Group?>(null) }
+    var assignmentInFocus by remember { mutableStateOf<Assignment?>(null) }
 
     var sharedEmail by remember {mutableStateOf("")}
     var sharedUsername by remember {mutableStateOf("")}
@@ -72,12 +78,17 @@ fun NavRoot(
     }
 
     //Indicate here if you want back arrow / actions
-    val showBackKeys = listOf<Route>(
-        Route.AddGroupPage
+    val showBackKeys = listOf(
+        Route.AddGroupPage,
+        Route.GroupDetailsPage,
+        Route.AssignmentDetailsPage
     )
     val showActionsKeys = listOf(
         Route.ThemeTest,
-        Route.Homepage
+        Route.Homepage,
+        Route.AddGroupPage,
+        Route.GroupDetailsPage,
+        Route.AssignmentDetailsPage
     )
     LaunchedEffect(backStack.last()){
         changeTopBar(
@@ -176,6 +187,14 @@ fun NavRoot(
                             onAddGroup = {
                                 user = it
                                 backStack.add(Route.AddGroupPage)
+                            },
+                            onGroupClicked = {
+                                groupInFocus = it
+                                backStack.add(Route.GroupDetailsPage)
+                            },
+                            onAssignmentClicked = {
+                                assignmentInFocus = it
+                                backStack.add(Route.AssignmentDetailsPage)
                             }
                         )
                     }
@@ -183,11 +202,37 @@ fun NavRoot(
                 Route.AddGroupPage -> {
                     NavEntry(key) {
                         AddGroupPage(
-                            user = user!!,
+                            user = user ?: error("User is null"),
                             onJoin = {
                                 backStack.remove(key)
                             },
                             showSnackBar = {showSnackBar(it)}
+                        )
+                    }
+                }
+                Route.GroupDetailsPage -> {
+                    NavEntry(key) {
+                        GroupDetailsPage(
+                            group = groupInFocus ?: error("Group is null"),
+                            onAssignmentClicked = {
+                                assignmentInFocus = it
+                                //Clean up and remove previous assignment details
+                                backStack.remove(Route.AssignmentDetailsPage)
+                                backStack.add(Route.AssignmentDetailsPage)
+                            }
+                        )
+                    }
+                }
+                Route.AssignmentDetailsPage -> {
+                    NavEntry(key) {
+                        AssignmentDetailsPage(
+                            assignment = assignmentInFocus ?: error("Assignment is null"),
+                            onGroupClicked = {
+                                groupInFocus = it
+                                //Clean up and remove previous group details
+                                backStack.remove(Route.GroupDetailsPage)
+                                backStack.add(Route.GroupDetailsPage)
+                            }
                         )
                     }
                 }

@@ -52,7 +52,9 @@ fun Homepage(
     onSignOut: () -> Unit,
     appPrefs: AppPreferences,
     showSnackBar: (String) -> Unit,
-    onAddGroup: (User) -> Unit
+    onAddGroup: (User) -> Unit,
+    onGroupClicked: (Group) -> Unit,
+    onAssignmentClicked: (Assignment) -> Unit
 ){
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
@@ -71,46 +73,48 @@ fun Homepage(
     }
     LaunchedEffect(networkStatus){
         try {
-            groups.clear()
-            assignments.clear()
-            //User
-            user = supabase.from("profiles")
-                .select {
-                    filter { eq("id", appPrefs.userId.first()) }
-                }
-                .decodeSingleOrNull<User>()
-            //Groups
-            val currentGroups: List<Group>? = user?.let{
-                val userGroups = it.groups
-                val groupList = mutableListOf<Group>()
-                userGroups?.forEach{ groupId ->
-                    val group = supabase.from("groups")
-                        .select {
-                            filter {
-                                eq("id", groupId)
+            if (networkStatus == NetworkStatus.Available){
+                groups.clear()
+                assignments.clear()
+                //User
+                user = supabase.from("profiles")
+                    .select {
+                        filter { eq("id", appPrefs.userId.first()) }
+                    }
+                    .decodeSingleOrNull<User>()
+                //Groups
+                val currentGroups: List<Group>? = user?.let {
+                    val userGroups = it.groups
+                    val groupList = mutableListOf<Group>()
+                    userGroups?.forEach { groupId ->
+                        val group = supabase.from("groups")
+                            .select {
+                                filter {
+                                    eq("id", groupId)
+                                }
                             }
-                        }
-                        .decodeSingleOrNull<Group>()
-                    if (group != null) groupList.add(group)
+                            .decodeSingleOrNull<Group>()
+                        if (group != null) groupList.add(group)
+                    }
+                    groupList
                 }
-                groupList
-            }
-            groups.addAll(currentGroups ?: emptyList())
-            //Assignments
-            groups.forEach { group ->
-                group.assignments.forEach { assignmentId ->
-                    val assignment = supabase.from("assignments")
-                        .select {
-                            filter {
-                                eq("id", assignmentId)
+                groups.addAll(currentGroups ?: emptyList())
+                //Assignments
+                groups.forEach { group ->
+                    group.assignments.forEach { assignmentId ->
+                        val assignment = supabase.from("assignments")
+                            .select {
+                                filter {
+                                    eq("id", assignmentId)
+                                }
                             }
-                        }
-                        .decodeSingleOrNull<Assignment>()
-                    if (assignment != null) assignments.add(assignment)
+                            .decodeSingleOrNull<Assignment>()
+                        if (assignment != null) assignments.add(assignment)
+                    }
                 }
+                //And finally store it locally in case user is offline the next time round
+                appPrefs.saveRawData(user, groups, assignments)
             }
-            //And finally store it locally in case user is offline the next time round
-            appPrefs.saveRawData(user, groups, assignments)
         } catch (e: Exception) {
             e.printStackTrace()
             user = Json.decodeFromString(appPrefs.rawUserData.first())
@@ -187,7 +191,9 @@ fun Homepage(
                         showGroups = showGroups,
                         showAssignments = showAssignments,
                         onShowGroup = {show -> showGroups = show},
-                        onShowAssignments = {show -> showAssignments = show}
+                        onShowAssignments = {show -> showAssignments = show},
+                        onGroupClicked = onGroupClicked,
+                        onAssignmentClicked = onAssignmentClicked
                     )
                     Tabs.PROFILE -> Profile(
                         onSignOut = {

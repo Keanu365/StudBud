@@ -91,6 +91,8 @@ fun App() {
                     subclass(Route.SignInPage::class, Route.SignInPage.serializer())
                     subclass(Route.Homepage::class, Route.Homepage.serializer())
                     subclass(Route.AddGroupPage::class, Route.AddGroupPage.serializer())
+                    subclass(Route.GroupDetailsPage::class, Route.GroupDetailsPage.serializer())
+                    subclass(Route.AssignmentDetailsPage::class, Route.AssignmentDetailsPage.serializer())
                 }
             }
         },
