@@ -18,7 +18,7 @@ data class User(
 data class Group(
     val id: String,
     val name: String,
-    val description: String,
+    val description: String = "",
     val members: List<String> = emptyList(),
     val assignments: List<String> = emptyList()
 )
@@ -27,6 +27,13 @@ data class Assignment(
     val id: String,
     val name: String,
     val created_at: Instant,
+    val due_date: LocalDate,
+    val group_id: String,
+    val description: String,
+)
+@Serializable
+data class AutoAssignment(
+    val name: String,
     val due_date: LocalDate,
     val group_id: String,
     val description: String,

@@ -28,11 +28,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.keanu365.studbud.theme.buttonColors
+import io.github.keanu365.studbud.theme.datePickerColors
 import io.github.keanu365.studbud.theme.errorButtonColors
 import io.github.keanu365.studbud.theme.outlinedTextFieldColors
 import kotlinx.datetime.number
@@ -61,8 +69,11 @@ import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_arrow_dropdown
 import studbud.composeapp.generated.resources.icon_error
+import studbud.composeapp.generated.resources.icon_info
 import studbud.composeapp.generated.resources.icon_invisible
 import studbud.composeapp.generated.resources.icon_visible
+import studbud.composeapp.generated.resources.icon_wand
+import studbud.composeapp.generated.resources.icon_warning
 
 @Composable
 fun TitleText(text: String){
@@ -377,4 +388,88 @@ fun ErrorButton(
         colors = errorButtonColors(),
         content = content
     )
+}
+
+@Composable
+fun SurfaceAlert(
+    alertType: AlertType,
+    message: String,
+    modifier: Modifier = Modifier,
+){
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+    ){
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)
+        ){
+            Icon(
+                painter = painterResource(
+                    when(alertType){
+                        AlertType.SUGGESTION -> Res.drawable.icon_wand
+                        AlertType.INFO -> Res.drawable.icon_info
+                        AlertType.WARNING -> Res.drawable.icon_warning
+                        AlertType.ERROR -> Res.drawable.icon_error
+                    }
+                ),
+                contentDescription = null,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(start = 15.dp)
+            )
+        }
+    }
+}
+
+enum class AlertType{
+    SUGGESTION, INFO, WARNING, ERROR
+}
+
+@Composable
+fun DatePickerModal(
+    title: String,
+    onDateSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val datePickerState = rememberDatePickerState()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TertiaryButton(
+                onClick = {
+                onDateSelected(datePickerState.selectedDateMillis)
+                onDismiss()
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                )
+            ) {
+                Text("Cancel")
+            }
+        },
+        modifier = modifier,
+    ) {
+        DatePicker(
+            state = datePickerState,
+            title = { Text(title) },
+            colors = datePickerColors(),
+        )
+    }
 }

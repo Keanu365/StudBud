@@ -3,6 +3,8 @@ package io.github.keanu365.studbud.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePickerColors
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
@@ -95,5 +97,13 @@ fun errorButtonColors(): ButtonColors {
     return buttonColors().copy(
         containerColor = MaterialTheme.colorScheme.error,
         contentColor = MaterialTheme.colorScheme.onError,
+    )
+}
+
+@Composable
+fun datePickerColors(): DatePickerColors {
+    return DatePickerDefaults.colors(
+        containerColor = MaterialTheme.colorScheme.surface,
+        dateTextFieldColors = outlinedTextFieldColors(),
     )
 }
