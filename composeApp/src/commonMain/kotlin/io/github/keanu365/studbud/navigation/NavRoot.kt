@@ -1,6 +1,8 @@
 package io.github.keanu365.studbud.navigation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -9,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -22,6 +25,7 @@ import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.SplashLength
 import io.github.keanu365.studbud.SplashScreen
+import io.github.keanu365.studbud.SuccessPage
 import io.github.keanu365.studbud.ThemeTest
 import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.account.SignInPage
@@ -34,6 +38,9 @@ import io.github.keanu365.studbud.main.Homepage
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
+import studbud.composeapp.generated.resources.Res
+import studbud.composeapp.generated.resources.success
 
 @Composable
 fun NavRoot(
@@ -76,6 +83,11 @@ fun NavRoot(
         backStack.add(Route.SplashScreen)
         backStack.remove(key)
     }
+
+    //SuccessPage stuff
+    var successTitle by remember { mutableStateOf("") }
+    var successImage by remember {mutableStateOf<@Composable () -> Unit>({})}
+    var successContent by remember {mutableStateOf<@Composable () -> Unit>({})}
 
     //Indicate here if you want back arrow / actions
     val showBackKeys = listOf(
@@ -204,7 +216,16 @@ fun NavRoot(
                         AddGroupPage(
                             user = user ?: error("User is null"),
                             onJoin = {
+                                successTitle = "Group joined/created successfully!"
+                                successImage = {
+                                    Image(
+                                        painter = painterResource(Res.drawable.success),
+                                        contentDescription = null,
+                                    )
+                                }
+                                successContent = {GroupDetailsPage(it, modifier = Modifier)}
                                 backStack.remove(key)
+                                backStack.add(Route.SuccessPage)
                             },
                             showSnackBar = {showSnackBar(it)}
                         )
@@ -233,6 +254,23 @@ fun NavRoot(
                                 backStack.remove(Route.GroupDetailsPage)
                                 backStack.add(Route.GroupDetailsPage)
                             }
+                        )
+                    }
+                }
+                Route.SuccessPage -> {
+                    NavEntry(key) {
+                        SuccessPage(
+                            title = successTitle,
+                            image = successImage,
+                            content = successContent,
+                            onReturn = {
+                                backStack.remove(key)
+                                backStack.add(Route.Homepage)
+                            },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(15.dp)
+                                .padding(bottom = 20.dp)
                         )
                     }
                 }

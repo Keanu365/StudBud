@@ -72,51 +72,49 @@ fun Homepage(
         pagerState.scrollToPage(1)
     }
     LaunchedEffect(networkStatus){
-        try {
-            if (networkStatus == NetworkStatus.Available){
-                groups.clear()
-                assignments.clear()
-                //User
-                user = supabase.from("profiles")
-                    .select {
-                        filter { eq("id", appPrefs.userId.first()) }
-                    }
-                    .decodeSingleOrNull<User>()
-                //Groups
-                val currentGroups: List<Group>? = user?.let {
-                    val userGroups = it.groups
-                    val groupList = mutableListOf<Group>()
-                    userGroups?.forEach { groupId ->
-                        val group = supabase.from("groups")
-                            .select {
-                                filter {
-                                    eq("id", groupId)
-                                }
-                            }
-                            .decodeSingleOrNull<Group>()
-                        if (group != null) groupList.add(group)
-                    }
-                    groupList
+        groups.clear()
+        assignments.clear()
+        if (networkStatus == NetworkStatus.Available){
+            //User
+            user = supabase.from("profiles")
+                .select {
+                    filter { eq("id", appPrefs.userId.first()) }
                 }
-                groups.addAll(currentGroups ?: emptyList())
-                //Assignments
-                groups.forEach { group ->
-                    group.assignments.forEach { assignmentId ->
-                        val assignment = supabase.from("assignments")
-                            .select {
-                                filter {
-                                    eq("id", assignmentId)
-                                }
+                .decodeSingleOrNull<User>()
+            //Groups
+            val currentGroups: List<Group>? = user?.let {
+                val userGroups = it.groups
+                val groupList = mutableListOf<Group>()
+                userGroups?.forEach { groupId ->
+                    val group = supabase.from("groups")
+                        .select {
+                            filter {
+                                eq("id", groupId)
                             }
-                            .decodeSingleOrNull<Assignment>()
-                        if (assignment != null) assignments.add(assignment)
-                    }
+                        }
+                        .decodeSingleOrNull<Group>()
+                    if (group != null) groupList.add(group)
                 }
-                //And finally store it locally in case user is offline the next time round
-                appPrefs.saveRawData(user, groups, assignments)
+                groupList
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+            groups.addAll(currentGroups ?: emptyList())
+            //Assignments
+            groups.forEach { group ->
+                group.assignments.forEach { assignmentId ->
+                    val assignment = supabase.from("assignments")
+                        .select {
+                            filter {
+                                eq("id", assignmentId)
+                            }
+                        }
+                        .decodeSingleOrNull<Assignment>()
+                    if (assignment != null) assignments.add(assignment)
+                }
+            }
+            //And finally store it locally in case user is offline the next time round
+            appPrefs.saveRawData(user, groups, assignments)
+            println("All successful!")
+        } else {
             user = Json.decodeFromString(appPrefs.rawUserData.first())
             groups.addAll(Json.decodeFromString(appPrefs.rawGroupsData.first()))
             assignments.addAll(Json.decodeFromString(appPrefs.rawAssignmentsData.first()))

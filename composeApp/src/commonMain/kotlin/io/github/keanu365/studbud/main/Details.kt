@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,11 +26,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.AlertType
+import io.github.keanu365.studbud.AnimatedDropdown
 import io.github.keanu365.studbud.Assignment
+import io.github.keanu365.studbud.DataView
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.SurfaceAlert
+import io.github.keanu365.studbud.TertiaryButton
+import io.github.keanu365.studbud.TitleText
 import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
+import io.github.keanu365.studbud.theme.buttonColors
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
@@ -41,7 +45,8 @@ import my.connectivity.kmp.rememberNetworkStatus
 @Composable
 fun GroupDetailsPage(
     group: Group,
-    onAssignmentClicked: (Assignment) -> Unit
+    modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
+    onAssignmentClicked: (Assignment) -> Unit = {}
 ){
     val networkStatus by rememberNetworkStatus()
     var showMembers by remember { mutableStateOf(false) }
@@ -85,21 +90,11 @@ fun GroupDetailsPage(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
+        modifier = modifier
             .padding(horizontal = 10.dp)
     ){
         Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = "Group Details",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .padding(bottom = 15.dp)
-                .fillMaxWidth()
-                .align(Alignment.CenterHorizontally)
-        )
+        TitleText("Group Details")
         Text(
             text = "Name",
             style = MaterialTheme.typography.headlineSmall,
@@ -108,6 +103,16 @@ fun GroupDetailsPage(
         )
         Text(
             text = group.name,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = "Group Code",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(bottom = 5.dp)
+        )
+        Text(
+            text = group.id,
             style = MaterialTheme.typography.bodyLarge
         )
         Text(
@@ -147,10 +152,7 @@ fun GroupDetailsPage(
                 onClick = {
                     //TODO
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary,
-                    contentColor = MaterialTheme.colorScheme.onTertiary
-                ),
+                colors = buttonColors()
             ){
                 Text(
                     text = "+",
@@ -168,6 +170,7 @@ fun GroupDetailsPage(
 @Composable
 fun AssignmentDetailsPage(
     assignment: Assignment,
+    modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
     onGroupClicked: (Group) -> Unit
 ){
     var group by remember {mutableStateOf<Group?>(null)}
@@ -188,8 +191,7 @@ fun AssignmentDetailsPage(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
+        modifier = modifier
             .padding(horizontal = 10.dp)
     ){
         Spacer(modifier = Modifier.height(10.dp))
@@ -234,14 +236,10 @@ fun AssignmentDetailsPage(
             style = MaterialTheme.typography.bodyLarge
         )
         group?.let{
-            Button(
+            TertiaryButton(
                 onClick = {
                     onGroupClicked(it)
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary,
-                    contentColor = MaterialTheme.colorScheme.onTertiary
-                ),
+                }
             ){
                 Text(
                     text = "View Group Details",

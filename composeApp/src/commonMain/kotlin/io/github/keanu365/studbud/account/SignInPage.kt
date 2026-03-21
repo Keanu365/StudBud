@@ -2,7 +2,6 @@ package io.github.keanu365.studbud.account
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -31,8 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.exceptions.HttpRequestException
+import io.github.keanu365.studbud.InfoField
+import io.github.keanu365.studbud.TertiaryButton
+import io.github.keanu365.studbud.TitleText
 import io.github.keanu365.studbud.User
-import io.github.keanu365.studbud.theme.buttonColors
 import kotlinx.coroutines.launch
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_lock
@@ -80,14 +79,7 @@ fun SignInPage(
         Spacer(
             modifier = Modifier.height(5.dp)
         )
-        Text(
-            text = "Welcome back!",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(bottom = 15.dp)
-                .focusable()
-        )
+        TitleText("Welcome back!")
         InfoField(
             value = emailOrUsername,
             onValueChange = {
@@ -110,7 +102,7 @@ fun SignInPage(
             errorText = "Please fill in a password!"
         )
 
-        Button(
+        TertiaryButton(
             onClick = {
                 submitAttempted = true
                 buttonEnabled = performValidationChecks()
@@ -135,12 +127,10 @@ fun SignInPage(
                 }
             },
             enabled = buttonEnabled,
-            shape = RoundedCornerShape(25.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(15.dp)
                 .height(50.dp),
-            colors = buttonColors()
         ){
             Text(
                 text = "SIGN IN",

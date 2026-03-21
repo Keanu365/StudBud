@@ -89,3 +89,11 @@ fun buttonColors(): ButtonColors {
         disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
+
+@Composable
+fun errorButtonColors(): ButtonColors {
+    return buttonColors().copy(
+        containerColor = MaterialTheme.colorScheme.error,
+        contentColor = MaterialTheme.colorScheme.onError,
+    )
+}

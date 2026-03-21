@@ -19,8 +19,8 @@ data class Group(
     val id: String,
     val name: String,
     val description: String,
-    val members: List<String>,
-    val assignments: List<String>
+    val members: List<String> = emptyList(),
+    val assignments: List<String> = emptyList()
 )
 @Serializable
 data class Assignment(

@@ -41,7 +41,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import io.github.keanu365.studbud.ErrorButton
 import io.github.keanu365.studbud.User
+import io.github.keanu365.studbud.theme.buttonColors
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.default
@@ -82,10 +84,7 @@ fun Profile(
                         onSignOut()
                         showSignOutAlert = false
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
+                    colors = buttonColors()
                 ){Text("Yes")}
             },
             dismissButton = {
@@ -185,14 +184,10 @@ fun Profile(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Button(
+        ErrorButton(
             onClick = {
                 showSignOutAlert = true
             },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError
-            ),
             modifier = Modifier
                 .padding(15.dp)
                 .fillMaxWidth()

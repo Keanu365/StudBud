@@ -1,6 +1,7 @@
 package io.github.keanu365.studbud
 
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.SettingsSessionManager
 import io.github.jan.supabase.compose.auth.ComposeAuth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
@@ -13,6 +14,7 @@ val supabase = createSupabaseClient(
     install(Postgrest)
     install(Auth){
         alwaysAutoRefresh = true
+        sessionManager = SettingsSessionManager()
     }
     install(Storage)
     install(ComposeAuth)

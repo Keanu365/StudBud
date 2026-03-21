@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -32,9 +30,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
+import io.github.keanu365.studbud.InfoField
+import io.github.keanu365.studbud.TertiaryButton
 import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
-import io.github.keanu365.studbud.theme.buttonColors
 import kotlinx.coroutines.launch
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_email
@@ -141,7 +140,7 @@ fun SignUpPage(
             errorText = "Passwords do not match"
         )
 
-        Button(
+        TertiaryButton(
             onClick = {
                 submitAttempted = true
                 buttonEnabled = performValidationChecks()
@@ -180,12 +179,10 @@ fun SignUpPage(
                 }
             },
             enabled = buttonEnabled,
-            shape = RoundedCornerShape(25.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(15.dp)
                 .height(50.dp),
-            colors = buttonColors()
         ){
             Text(
                 text = "SIGN UP",

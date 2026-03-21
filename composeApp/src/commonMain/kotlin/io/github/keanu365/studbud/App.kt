@@ -93,6 +93,7 @@ fun App() {
                     subclass(Route.AddGroupPage::class, Route.AddGroupPage.serializer())
                     subclass(Route.GroupDetailsPage::class, Route.GroupDetailsPage.serializer())
                     subclass(Route.AssignmentDetailsPage::class, Route.AssignmentDetailsPage.serializer())
+                    subclass(Route.SuccessPage::class, Route.SuccessPage.serializer())
                 }
             }
         },
