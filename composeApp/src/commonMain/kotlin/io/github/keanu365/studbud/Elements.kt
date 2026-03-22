@@ -38,7 +38,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -67,6 +66,7 @@ import kotlinx.datetime.number
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
+import studbud.composeapp.generated.resources.icon_add
 import studbud.composeapp.generated.resources.icon_arrow_dropdown
 import studbud.composeapp.generated.resources.icon_error
 import studbud.composeapp.generated.resources.icon_info
@@ -90,14 +90,17 @@ fun TitleText(text: String){
 
 @Composable
 fun InfoField(
+    modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
     labelText: String,
     leadingIconResource: DrawableResource? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
     isError: Boolean,
     errorText: String = "Error",
     isPassword: Boolean = false,
     singleLine: Boolean = true,
+    readOnly: Boolean = false,
     capitalization: KeyboardCapitalization = KeyboardCapitalization.None
 ){
     var showPassword by remember { mutableStateOf(false) }
@@ -117,10 +120,11 @@ fun InfoField(
                 }
             },
             singleLine = singleLine,
+            readOnly = readOnly,
             isError = isError,
             colors = outlinedTextFieldColors(),
             shape = RoundedCornerShape(15.dp),
-            modifier = Modifier
+            modifier = modifier
                 .padding(horizontal = 15.dp)
                 .fillMaxWidth()
                 .then(if (singleLine) Modifier.height(75.dp) else Modifier),
@@ -140,6 +144,7 @@ fun InfoField(
                                 .size(24.dp)
                         )
                     }
+                else if (trailingIcon != null) trailingIcon()
             },
             visualTransformation = if (showPassword || !isPassword) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
@@ -181,62 +186,104 @@ fun AnimatedDropdown(
     onDataClicked: ((Any) -> Unit)? = null,
     onShowChanged: (Boolean) -> Unit = {}
 ){
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ){
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Medium
-        )
-        IconButton(
-            onClick = {
-                onShowChanged(!show)
-            },
-            modifier = Modifier
+    Column {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
         ){
-            Icon(
-                painter = painterResource(Res.drawable.icon_arrow_dropdown),
-                contentDescription = null,
-                modifier = animateDropdown(show)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Medium
+            )
+            IconButton(
+                onClick = {
+                    onShowChanged(!show)
+                },
+            ){
+                Icon(
+                    painter = painterResource(Res.drawable.icon_arrow_dropdown),
+                    contentDescription = null,
+                    modifier = animateDropdown(show)
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = show,
+            enter = slideInVertically(initialOffsetY = { -40 }) + expandVertically(
+                expandFrom = Alignment.Top
+            ) + fadeIn(initialAlpha = 0.3f),
+            exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkVertically(
+                shrinkTowards = Alignment.Top
+            ) + fadeOut()
+        ){
+            DataView(
+                dataList = dataList,
+                firstLabel = firstLabel,
+                secondLabel = secondLabel,
+                onDataClicked = onDataClicked
             )
         }
     }
-    AnimatedVisibility(
-        visible = show,
-        enter = slideInVertically(initialOffsetY = { -40 }) + expandVertically(
-            expandFrom = Alignment.Top
-        ) + fadeIn(initialAlpha = 0.3f),
-        exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkVertically(
-            shrinkTowards = Alignment.Top
-        ) + fadeOut()
-    ){
-        Column(Modifier.padding(vertical = 10.dp)){
-            if (dataList.isEmpty()) Text(
-                text = "Nothing to see here yet!",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) else Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 5.dp)
-            ){
-                Text(
-                    text = firstLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = secondLabel,
-                    textAlign = TextAlign.End,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth()
-                )
+}
+
+@Composable
+fun AssignmentsDropdown(
+    show: Boolean,
+    onShowChanged: (Boolean) -> Unit,
+    title: String,
+    assignments: List<Assignment>,
+    onAssignmentAdd: () -> Unit,
+    onAssignmentClicked: (Assignment) -> Unit
+){
+    Column {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ){
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Medium
+            )
+            Row{
+                IconButton(
+                    onClick = onAssignmentAdd
+                ){
+                    Icon(
+                        painter = painterResource(Res.drawable.icon_add),
+                        contentDescription = null,
+                        modifier = animateDropdown(show)
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        onShowChanged(!show)
+                    },
+                ){
+                    Icon(
+                        painter = painterResource(Res.drawable.icon_arrow_dropdown),
+                        contentDescription = null,
+                        modifier = animateDropdown(show)
+                    )
+                }
             }
+        }
+        AnimatedVisibility(
+            visible = show,
+            enter = slideInVertically(initialOffsetY = { -40 }) + expandVertically(
+                expandFrom = Alignment.Top
+            ) + fadeIn(initialAlpha = 0.3f),
+            exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkVertically(
+                shrinkTowards = Alignment.Top
+            ) + fadeOut()
+        ){
             DataView(
-                dataList = dataList,
-                onDataClicked = onDataClicked
+                dataList = assignments,
+                secondLabel = "Due Date",
+                onDataClicked = { onAssignmentClicked(it as Assignment) }
             )
         }
     }
@@ -245,57 +292,81 @@ fun AnimatedDropdown(
 @Composable
 fun DataView(
     dataList: List<Any>,
+    firstLabel: String = "Name",
+    secondLabel: String = " ",
     onDataClicked: ((Any) -> Unit)? = null
 ){
-    dataList.forEachIndexed { index, data ->
-        var firstText = "$data"
-        var secondText = ""
-        when (data) {
-            is User -> {
-                firstText = data.username
-            }
-            is Group -> {
-                firstText = data.name
-                secondText = "${data.members.size}"
-            }
-            is Assignment -> {
-                firstText = data.name
-                secondText = "${data.due_date.day}/${data.due_date.month.number}/${data.due_date.year}"
-            }
-        }
-        Row(
+    Column(Modifier.padding(vertical = 10.dp)){
+        if (dataList.isEmpty()) Text(
+            text = "Nothing to see here yet!",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) else Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = if (index % 2 == 0) Color.Transparent
-                    else MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(5.dp)
-                )
-                .then(
-                    if (onDataClicked != null) Modifier.clickable { onDataClicked(data) }
-                    else Modifier
-                )
+            modifier = Modifier.padding(horizontal = 5.dp)
         ){
             Text(
-                text = firstText,
-                fontSize = 16.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .padding(start = 5.dp)
-                    .fillMaxWidth(0.6f)
-                    .horizontalScroll(rememberScrollState()) //In case name is too long
+                text = firstLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = secondText,
-                fontSize = 16.sp,
-                maxLines = 1,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = secondLabel,
                 textAlign = TextAlign.End,
-                modifier = Modifier.padding(horizontal = 5.dp).fillMaxWidth()
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
             )
+        }
+        dataList.forEachIndexed { index, data ->
+            var firstText = "$data"
+            var secondText = ""
+            when (data) {
+                is User -> {
+                    firstText = data.username
+                }
+                is Group -> {
+                    firstText = data.name
+                    secondText = "${data.members.size}"
+                }
+                is Assignment -> {
+                    firstText = data.name
+                    secondText = "${data.due_date.day}/${data.due_date.month.number}/${data.due_date.year}"
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = if (index % 2 == 0) Color.Transparent
+                        else MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(5.dp)
+                    )
+                    .then(
+                        if (onDataClicked != null) Modifier.clickable { onDataClicked(data) }
+                        else Modifier
+                    )
+            ){
+                Text(
+                    text = firstText,
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .padding(start = 5.dp)
+                        .fillMaxWidth(0.6f)
+                        .horizontalScroll(rememberScrollState()) //In case name is too long
+                )
+                Text(
+                    text = secondText,
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.padding(horizontal = 5.dp).fillMaxWidth()
+                )
+            }
         }
     }
 }

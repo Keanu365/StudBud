@@ -52,9 +52,11 @@ fun Homepage(
     onSignOut: () -> Unit,
     appPrefs: AppPreferences,
     showSnackBar: (String) -> Unit,
+    onUserLoaded: (User) -> Unit = {},
     onAddGroup: (User) -> Unit,
     onGroupClicked: (Group) -> Unit,
-    onAssignmentClicked: (Assignment) -> Unit
+    onAssignmentClicked: (Assignment) -> Unit,
+    onAssignmentAdd: (User) -> Unit
 ){
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
@@ -81,6 +83,7 @@ fun Homepage(
                     filter { eq("id", appPrefs.userId.first()) }
                 }
                 .decodeSingleOrNull<User>()
+            user?.let{onUserLoaded(it)}
             //Groups
             val currentGroups: List<Group>? = user?.let {
                 val userGroups = it.groups
@@ -110,6 +113,18 @@ fun Homepage(
                         .decodeSingleOrNull<Assignment>()
                     if (assignment != null) assignments.add(assignment)
                 }
+            }
+            user?.let{
+                supabase.from("assignments")
+                    .select{
+                        filter{
+                            eq("group_id", it.id)
+                        }
+                    }
+                    .decodeList<Assignment>()
+                    .forEach{ assignment ->
+                        assignments.add(assignment)
+                    }
             }
             //And finally store it locally in case user is offline the next time round
             appPrefs.saveRawData(user, groups, assignments)
@@ -191,7 +206,20 @@ fun Homepage(
                         onShowGroup = {show -> showGroups = show},
                         onShowAssignments = {show -> showAssignments = show},
                         onGroupClicked = onGroupClicked,
-                        onAssignmentClicked = onAssignmentClicked
+                        onAssignmentClicked = onAssignmentClicked,
+                        onAssignmentAdd = {
+                            if (networkStatus != NetworkStatus.Available){
+                                showSnackBar("Please connect to the Internet!")
+                            } else {
+                                try {
+                                    onAssignmentAdd(user!!)
+                                } catch (_: NullPointerException) {
+                                    showSnackBar("Error fetching user data. Please wait a moment before trying again.")
+                                } catch (_: Exception) {
+                                    showSnackBar("Something went wrong. Please try again later.")
+                                }
+                            }
+                        }
                     )
                     Tabs.PROFILE -> Profile(
                         onSignOut = {

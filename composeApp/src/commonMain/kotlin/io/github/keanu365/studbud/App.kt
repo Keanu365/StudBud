@@ -94,6 +94,7 @@ fun App() {
                     subclass(Route.GroupDetailsPage::class, Route.GroupDetailsPage.serializer())
                     subclass(Route.AssignmentDetailsPage::class, Route.AssignmentDetailsPage.serializer())
                     subclass(Route.SuccessPage::class, Route.SuccessPage.serializer())
+                    subclass(Route.AddAssignmentPage::class, Route.AddAssignmentPage.serializer())
                 }
             }
         },
@@ -258,7 +259,7 @@ fun App() {
                             if (showActions){
                                 IconButton(
                                     onClick = {
-                                        //TODO
+                                        //TODO Leaderboard
                                     }
                                 ){
                                     Icon(
@@ -269,7 +270,7 @@ fun App() {
                                 }
                                 IconButton(
                                     onClick = {
-                                        //TODO
+                                        //TODO Settings
                                     }
                                 ){
                                     Icon(

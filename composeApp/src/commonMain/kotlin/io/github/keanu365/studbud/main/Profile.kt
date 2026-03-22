@@ -217,7 +217,7 @@ private fun PhotoMenu(
                     contentDescription = null
                 )
             },
-            onClick = {} //TODO
+            onClick = {} //TODO View Photo
         )
         HorizontalDivider()
         DropdownMenuItem(
@@ -228,7 +228,7 @@ private fun PhotoMenu(
                     contentDescription = null
                 )
             },
-            onClick = {} //TODO
+            onClick = {} //TODO Change Photo
         )
     }
 }

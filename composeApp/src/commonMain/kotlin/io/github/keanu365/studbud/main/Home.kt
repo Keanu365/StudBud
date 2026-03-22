@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.keanu365.studbud.AnimatedDropdown
 import io.github.keanu365.studbud.Assignment
+import io.github.keanu365.studbud.AssignmentsDropdown
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.TertiaryButton
 import kotlinx.datetime.TimeZone
@@ -36,7 +37,8 @@ fun Home(
     showGroups: Boolean,
     showAssignments: Boolean,
     onShowGroup: (Boolean) -> Unit = {},
-    onShowAssignments: (Boolean) -> Unit = {}
+    onShowAssignments: (Boolean) -> Unit = {},
+    onAssignmentAdd: () -> Unit = {}
 ){
     val timeOfDay = remember {
         val hour = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time.hour
@@ -76,13 +78,13 @@ fun Home(
                 onDataClicked = {onGroupClicked(it as Group)}
             )
             Spacer(modifier = Modifier.height(10.dp))
-            AnimatedDropdown(
+            AssignmentsDropdown(
                 show = showAssignments,
                 title = "My assignments",
-                secondLabel = "Due Date",
-                dataList = assignments,
+                assignments = assignments,
                 onShowChanged = {onShowAssignments(it)},
-                onDataClicked = {onAssignmentClicked(it as Assignment)}
+                onAssignmentClicked = {onAssignmentClicked(it)},
+                onAssignmentAdd = onAssignmentAdd
             )
         }
         TertiaryButton(

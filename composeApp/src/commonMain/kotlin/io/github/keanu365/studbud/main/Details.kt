@@ -2,14 +2,12 @@ package io.github.keanu365.studbud.main
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,14 +26,13 @@ import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.AlertType
 import io.github.keanu365.studbud.AnimatedDropdown
 import io.github.keanu365.studbud.Assignment
-import io.github.keanu365.studbud.DataView
+import io.github.keanu365.studbud.AssignmentsDropdown
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.SurfaceAlert
 import io.github.keanu365.studbud.TertiaryButton
 import io.github.keanu365.studbud.TitleText
 import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
-import io.github.keanu365.studbud.theme.buttonColors
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
@@ -46,10 +43,12 @@ import my.connectivity.kmp.rememberNetworkStatus
 fun GroupDetailsPage(
     group: Group,
     modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
-    onAssignmentClicked: (Assignment) -> Unit = {}
+    onAssignmentClicked: (Assignment) -> Unit = {},
+    onAssignmentAdd: () -> Unit = {}
 ){
     val networkStatus by rememberNetworkStatus()
     var showMembers by remember { mutableStateOf(false) }
+    var showAssignments by remember { mutableStateOf(true) }
     val members = remember { mutableStateListOf<User>() }
     val assignments = remember { mutableStateListOf<Assignment>() }
 
@@ -138,31 +137,13 @@ fun GroupDetailsPage(
             dataList = members,
             onShowChanged = {showMembers = it}
         )
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ){
-            Text(
-                text = "Assignments (${group.assignments.size})",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 5.dp)
-            )
-            Button(
-                onClick = {
-                    //TODO
-                },
-                colors = buttonColors()
-            ){
-                Text(
-                    text = "+",
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-        DataView(
-            dataList = assignments,
-            onDataClicked = {onAssignmentClicked(it as Assignment)}
+        AssignmentsDropdown(
+            show = showAssignments,
+            onShowChanged = {showAssignments = it},
+            title = "Assignments (${group.assignments.size})",
+            assignments = assignments,
+            onAssignmentClicked = onAssignmentClicked,
+            onAssignmentAdd = onAssignmentAdd
         )
     }
 }
@@ -171,7 +152,7 @@ fun GroupDetailsPage(
 fun AssignmentDetailsPage(
     assignment: Assignment,
     modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
-    onGroupClicked: (Group) -> Unit
+    onGroupClicked: (Group) -> Unit = {}
 ){
     var group by remember {mutableStateOf<Group?>(null)}
     val networkStatus by rememberNetworkStatus()

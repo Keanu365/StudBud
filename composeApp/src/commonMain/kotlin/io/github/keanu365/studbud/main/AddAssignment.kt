@@ -1,10 +1,11 @@
 package io.github.keanu365.studbud.main
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
@@ -12,7 +13,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -26,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.Assignment
@@ -48,18 +50,20 @@ import kotlin.time.Instant
 @Composable
 fun AddAssignmentPage(
     user: User,
-    startingGroup: Group = Group(user.id, "Personal"),
+    startingGroup: Group? = null,
     onAdd: (Assignment) -> Unit,
     showSnackBar: (String) -> Unit
 ){
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
 
-    val groups = remember { mutableStateListOf(startingGroup) }
-    var selectedGroup by remember {mutableStateOf(startingGroup)}
-    var selectedGroupName by remember {mutableStateOf(startingGroup.name)}
+    val groups = remember { mutableStateListOf(Group(user.id, "Personal")) }
+    var selectedGroup by remember {mutableStateOf(startingGroup ?: groups.first())}
     var isGroupExpanded by remember {mutableStateOf(false)}
     LaunchedEffect(Unit){
+        startingGroup?.let{
+            groups.add(it)
+        }
         user.groups?.forEach { groupId ->
             try {
                 supabase.from("groups")
@@ -69,7 +73,7 @@ fun AddAssignmentPage(
                         }
                     }
                     .decodeSingleOrNull<Group>()?.let {
-                        groups.add(it)
+                        if (!groups.contains(it)) groups.add(it)
                     }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -80,6 +84,7 @@ fun AddAssignmentPage(
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     val dueDate = rememberDatePickerState()
+    var showDatePicker by remember {mutableStateOf(false)}
     var nameError by remember { mutableStateOf(false) }
     var submitAttempted by remember {mutableStateOf(false)}
     LaunchedEffect(name, description, selectedGroup, dueDate){
@@ -99,11 +104,30 @@ fun AddAssignmentPage(
                     group_id = selectedGroup.id,
                     description = description
                 )
-                val assignment = supabase.from("assignments").insert(autoAssignment){
-                    filter {
-                        eq("id", user.id)
+                val assignment = supabase.from("assignments")
+                    .insert(autoAssignment){
+                        select()
                     }
-                }.decodeSingle<Assignment>()
+                    .decodeSingle<Assignment>()
+                //Update the group too (if not personal)
+                supabase.from("groups")
+                    .select {
+                        filter {
+                            eq("id", assignment.group_id)
+                        }
+                    }
+                    .decodeSingleOrNull<Group>()?.let { group ->
+                        supabase.from("groups")
+                            .update(
+                                {
+                                    set("assignments", group.assignments + assignment.id)
+                                }
+                            ){
+                                filter {
+                                    eq("id", group.id)
+                                }
+                            }
+                    }
                 onAdd(assignment)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -125,34 +149,52 @@ fun AddAssignmentPage(
             isError = nameError,
             errorText = "Please enter an assignment name!"
         )
-        DatePickerModal(
+        Box(modifier = Modifier.fillMaxWidth()){
+            InfoField(
+                value = dueDate.selectedDateMillis?.let {
+                    Instant.fromEpochMilliseconds(it).toLocalDateTime(UTC).date.toString()
+                } ?: "",
+                onValueChange = {},
+                readOnly = true,
+                labelText = "Due Date",
+                isError = false, //Maybe change this in the future
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable{showDatePicker = true}
+            )
+        }
+        if (showDatePicker) DatePickerModal(
+            onDismiss = {showDatePicker = false},
             title = "Due Date",
             onDateSelected = {
                 dueDate.selectedDateMillis = it
+                showDatePicker = false
             },
         )
         ExposedDropdownMenuBox(
             expanded = isGroupExpanded,
             onExpandedChange = { isGroupExpanded = !isGroupExpanded },
         ){
-            OutlinedTextField(
-                value = selectedGroupName,
-                onValueChange = {selectedGroupName = it},
-                label = {Text("Group")},
+            InfoField(
+                value = selectedGroup.name,
+                onValueChange = {},
+                readOnly = true,
+                isError = false,
+                labelText = "Group",
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded)
                 },
                 modifier = Modifier
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
             )
             ExposedDropdownMenu(
                 expanded = isGroupExpanded,
                 onDismissRequest = { isGroupExpanded = false },
                 modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .height(300.dp)
+                    .heightIn(max = 300.dp)
             ){
                 groups.forEach { group ->
                     DropdownMenuItem(
@@ -173,16 +215,18 @@ fun AddAssignmentPage(
             isError = false,
             errorText = "Something went wrong.",
             singleLine = false,
-            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences
+            capitalization = KeyboardCapitalization.Sentences
         )
         TertiaryButton(
             onClick = {
                 submitAttempted = true
                 if (!nameError) createAssignment()
             },
+            modifier = Modifier.fillMaxWidth()
         ){
             Text(
                 text = "Add Assignment",
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
         }

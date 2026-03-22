@@ -31,6 +31,7 @@ import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.account.SignInPage
 import io.github.keanu365.studbud.account.SignUpPage
 import io.github.keanu365.studbud.account.isEmailValid
+import io.github.keanu365.studbud.main.AddAssignmentPage
 import io.github.keanu365.studbud.main.AddGroupPage
 import io.github.keanu365.studbud.main.AssignmentDetailsPage
 import io.github.keanu365.studbud.main.GroupDetailsPage
@@ -196,6 +197,7 @@ fun NavRoot(
                             onSignOut = { onSignOut(key) },
                             appPrefs = appPrefs,
                             showSnackBar = {showSnackBar(it)},
+                            onUserLoaded = {user = it},
                             onAddGroup = {
                                 user = it
                                 backStack.add(Route.AddGroupPage)
@@ -207,6 +209,10 @@ fun NavRoot(
                             onAssignmentClicked = {
                                 assignmentInFocus = it
                                 backStack.add(Route.AssignmentDetailsPage)
+                            },
+                            onAssignmentAdd = {
+                                user = it
+                                backStack.add(Route.AddAssignmentPage)
                             }
                         )
                     }
@@ -240,6 +246,9 @@ fun NavRoot(
                                 //Clean up and remove previous assignment details
                                 backStack.remove(Route.AssignmentDetailsPage)
                                 backStack.add(Route.AssignmentDetailsPage)
+                            },
+                            onAssignmentAdd = {
+                                backStack.add(Route.AddAssignmentPage)
                             }
                         )
                     }
@@ -253,6 +262,29 @@ fun NavRoot(
                                 //Clean up and remove previous group details
                                 backStack.remove(Route.GroupDetailsPage)
                                 backStack.add(Route.GroupDetailsPage)
+                            }
+                        )
+                    }
+                }
+                Route.AddAssignmentPage -> {
+                    NavEntry(key) {
+                        AddAssignmentPage(
+                            startingGroup = groupInFocus,
+                            user = user ?: error("User is null"),
+                            showSnackBar = {showSnackBar(it)},
+                            onAdd = {
+                                successTitle = "Assignment created!"
+                                successImage = {
+                                    Image(
+                                        painter = painterResource(Res.drawable.success),
+                                        contentDescription = null,
+                                    )
+                                }
+                                successContent = {
+                                    AssignmentDetailsPage(it, modifier = Modifier)
+                                }
+                                backStack.remove(key)
+                                backStack.add(Route.SuccessPage)
                             }
                         )
                     }

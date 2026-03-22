@@ -23,4 +23,6 @@ sealed interface Route: NavKey {
     data object AssignmentDetailsPage: Route, NavKey
     @Serializable
     data object SuccessPage: Route, NavKey
+    @Serializable
+    data object AddAssignmentPage: Route, NavKey
 }
