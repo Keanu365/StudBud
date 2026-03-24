@@ -9,20 +9,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.keanu365.studbud.AnimatedDropdown
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.AssignmentsDropdown
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.TertiaryButton
+import io.github.keanu365.studbud.TitleText
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -60,15 +59,7 @@ fun Home(
                 .padding(horizontal = 15.dp)
                 .verticalScroll(rememberScrollState())
         ){
-            Text(
-                text = "Good $timeOfDay!",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(bottom = 15.dp)
-                    .fillMaxWidth()
-            )
+            TitleText("Good $timeOfDay!")
             AnimatedDropdown(
                 show = showGroups,
                 title = "My groups",

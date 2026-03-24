@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.AppPreferences
 import io.github.keanu365.studbud.Assignment
+import io.github.keanu365.studbud.AutoUserAssignment
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
@@ -56,7 +57,8 @@ fun Homepage(
     onAddGroup: (User) -> Unit,
     onGroupClicked: (Group) -> Unit,
     onAssignmentClicked: (Assignment) -> Unit,
-    onAssignmentAdd: (User) -> Unit
+    onAssignmentAdd: (User) -> Unit,
+    onTimerStart: (AutoUserAssignment?) -> Unit
 ){
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
@@ -136,6 +138,20 @@ fun Homepage(
         }
     }
 
+    fun tryAndCatch(block: () -> Unit){
+        if (networkStatus != NetworkStatus.Available){
+            showSnackBar("Please connect to the Internet!")
+        } else {
+            try {
+                block()
+            } catch (_: NullPointerException) {
+                showSnackBar("Error fetching user data. Please wait a moment before trying again.")
+            } catch (_: Exception) {
+                showSnackBar("Something went wrong. Please try again later.")
+            }
+        }
+    }
+
     Scaffold(
         bottomBar = {
             BottomAppBar(
@@ -184,20 +200,15 @@ fun Homepage(
                 modifier = Modifier.fillMaxSize()
             ){
                 when(Tabs.tabs[it]){
-                    Tabs.TIMER -> Timer()
+                    Tabs.TIMER -> Timer(
+                        assignments = assignments,
+                        onStart = { assignment ->
+                            tryAndCatch { onTimerStart(assignment) }
+                        }
+                    )
                     Tabs.HOME -> Home(
                         onAddGroup = {
-                            if (networkStatus != NetworkStatus.Available){
-                                showSnackBar("Please connect to the Internet!")
-                            } else {
-                                try {
-                                    onAddGroup(user!!)
-                                } catch (_: NullPointerException) {
-                                    showSnackBar("Error fetching user data. Please wait a moment before trying again.")
-                                } catch (_: Exception) {
-                                    showSnackBar("Something went wrong. Please try again later.")
-                                }
-                            }
+                            tryAndCatch { onAddGroup(user!!) }
                         },
                         groups = groups,
                         assignments = assignments,
@@ -208,30 +219,12 @@ fun Homepage(
                         onGroupClicked = onGroupClicked,
                         onAssignmentClicked = onAssignmentClicked,
                         onAssignmentAdd = {
-                            if (networkStatus != NetworkStatus.Available){
-                                showSnackBar("Please connect to the Internet!")
-                            } else {
-                                try {
-                                    onAssignmentAdd(user!!)
-                                } catch (_: NullPointerException) {
-                                    showSnackBar("Error fetching user data. Please wait a moment before trying again.")
-                                } catch (_: Exception) {
-                                    showSnackBar("Something went wrong. Please try again later.")
-                                }
-                            }
+                            tryAndCatch { onAssignmentAdd(user!!) }
                         }
                     )
                     Tabs.PROFILE -> Profile(
                         onSignOut = {
-                            if (networkStatus != NetworkStatus.Available){
-                                showSnackBar("Please connect to the Internet!")
-                            } else {
-                                try {
-                                    onSignOut()
-                                } catch (_: Exception) {
-                                    showSnackBar("Something went wrong. Please try again later.")
-                                }
-                            }
+                            tryAndCatch { onSignOut() }
                         },
                         user = user
                     )

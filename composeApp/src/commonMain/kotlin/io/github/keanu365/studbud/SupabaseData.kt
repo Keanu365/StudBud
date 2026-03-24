@@ -1,7 +1,10 @@
 package io.github.keanu365.studbud
 
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import kotlinx.serialization.Serializable
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 @Serializable
@@ -34,7 +37,24 @@ data class Assignment(
 @Serializable
 data class AutoAssignment(
     val name: String,
-    val due_date: LocalDate,
+    val due_date: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault()),
     val group_id: String,
-    val description: String,
+    val description: String = "",
+)
+@Serializable
+data class UserAssignment(
+    val id: String,
+    val created_at: Instant,
+    val user_id: String,
+    val period: Int = 25,
+    val breaktime: Int = 5,
+    val iterations: Int = 1,
+    val completed: Boolean = false
+)
+@Serializable
+data class AutoUserAssignment(
+    val id: String,
+    val period: Int = 25,
+    val breaktime: Int = 5,
+    val iterations: Int = 1
 )

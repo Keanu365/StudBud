@@ -101,7 +101,8 @@ fun InfoField(
     isPassword: Boolean = false,
     singleLine: Boolean = true,
     readOnly: Boolean = false,
-    capitalization: KeyboardCapitalization = KeyboardCapitalization.None
+    capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
+    keyboardType: KeyboardType = KeyboardType.Text
 ){
     var showPassword by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth()){
@@ -150,7 +151,7 @@ fun InfoField(
             keyboardOptions = KeyboardOptions(
                 capitalization = capitalization,
                 autoCorrectEnabled = capitalization == KeyboardCapitalization.Sentences,
-                keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
+                keyboardType = if (isPassword) KeyboardType.Password else keyboardType,
                 imeAction = ImeAction.Next,
             )
         )
@@ -539,7 +540,13 @@ fun DatePickerModal(
     ) {
         DatePicker(
             state = datePickerState,
-            title = { Text(title) },
+            title = { Text(
+                text = title,
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) },
             colors = datePickerColors(),
         )
     }

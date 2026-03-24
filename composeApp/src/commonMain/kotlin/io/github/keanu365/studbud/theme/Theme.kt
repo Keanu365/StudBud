@@ -103,7 +103,9 @@ fun errorButtonColors(): ButtonColors {
 @Composable
 fun datePickerColors(): DatePickerColors {
     return DatePickerDefaults.colors(
-        containerColor = MaterialTheme.colorScheme.surface,
+        titleContentColor = MaterialTheme.colorScheme.primary,
+        navigationContentColor = MaterialTheme.colorScheme.primary,
+        dividerColor = MaterialTheme.colorScheme.onSurfaceVariant,
         dateTextFieldColors = outlinedTextFieldColors(),
     )
 }

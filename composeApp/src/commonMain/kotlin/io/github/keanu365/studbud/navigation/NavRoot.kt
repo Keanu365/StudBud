@@ -213,6 +213,10 @@ fun NavRoot(
                             onAssignmentAdd = {
                                 user = it
                                 backStack.add(Route.AddAssignmentPage)
+                            },
+                            onTimerStart = {
+                                //TODO
+                                showSnackBar(it?.id ?: "No assignment selected")
                             }
                         )
                     }
