@@ -20,6 +20,8 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
+import io.github.jan.supabase.network.HttpRequestOverride
+import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.AppPreferences
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.Group
@@ -28,6 +30,7 @@ import io.github.keanu365.studbud.SplashScreen
 import io.github.keanu365.studbud.SuccessPage
 import io.github.keanu365.studbud.ThemeTest
 import io.github.keanu365.studbud.User
+import io.github.keanu365.studbud.UserAssignment
 import io.github.keanu365.studbud.account.SignInPage
 import io.github.keanu365.studbud.account.SignUpPage
 import io.github.keanu365.studbud.account.isEmailValid
@@ -36,6 +39,7 @@ import io.github.keanu365.studbud.main.AddGroupPage
 import io.github.keanu365.studbud.main.AssignmentDetailsPage
 import io.github.keanu365.studbud.main.GroupDetailsPage
 import io.github.keanu365.studbud.main.Homepage
+import io.github.keanu365.studbud.main.Timer
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -55,6 +59,7 @@ fun NavRoot(
     var user by remember { mutableStateOf<User?>(null) }
     var groupInFocus by remember { mutableStateOf<Group?>(null) }
     var assignmentInFocus by remember { mutableStateOf<Assignment?>(null) }
+    var userAssignmentInFocus by remember { mutableStateOf<UserAssignment?>(null) }
 
     var sharedEmail by remember {mutableStateOf("")}
     var sharedUsername by remember {mutableStateOf("")}
@@ -214,9 +219,21 @@ fun NavRoot(
                                 user = it
                                 backStack.add(Route.AddAssignmentPage)
                             },
-                            onTimerStart = {
-                                //TODO
-                                showSnackBar(it?.id ?: "No assignment selected")
+                            onTimerStart = { assignment ->
+                                coroutineScope.launch {
+                                    try {
+                                        userAssignmentInFocus = assignment?.let{ supabase.from("user_assignments")
+                                                .insert(it){select()}
+                                                .decodeSingle<UserAssignment>()
+                                        } ?: UserAssignment(user_id = user!!.id)
+                                        backStack.remove(key)
+                                        backStack.add(Route.TimerPage)
+                                    } catch (_: HttpRequestException) {
+                                        showSnackBar("HTTP Request Timeout. Please try again later.")
+                                    } catch (_: NullPointerException) {
+                                        showSnackBar("Error fetching user data. Please try again later.")
+                                    }
+                                }
                             }
                         )
                     }
@@ -289,6 +306,17 @@ fun NavRoot(
                                 }
                                 backStack.remove(key)
                                 backStack.add(Route.SuccessPage)
+                            }
+                        )
+                    }
+                }
+                Route.TimerPage -> {
+                    NavEntry(key){
+                        Timer(
+                            userAssignment = userAssignmentInFocus ?: error("UserAssignment is null"),
+                            onFinish = {
+                                //TODO on timer finish
+                                showSnackBar(if (it == null) "Timer dismissed" else "Timer finished")
                             }
                         )
                     }

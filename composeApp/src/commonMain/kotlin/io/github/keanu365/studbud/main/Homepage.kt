@@ -200,7 +200,7 @@ fun Homepage(
                 modifier = Modifier.fillMaxSize()
             ){
                 when(Tabs.tabs[it]){
-                    Tabs.TIMER -> Timer(
+                    Tabs.TIMER -> TimerDetails(
                         assignments = assignments,
                         onStart = { assignment ->
                             tryAndCatch { onTimerStart(assignment) }
