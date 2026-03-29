@@ -58,7 +58,7 @@ fun Homepage(
     onGroupClicked: (Group) -> Unit,
     onAssignmentClicked: (Assignment) -> Unit,
     onAssignmentAdd: (User) -> Unit,
-    onTimerStart: (AutoUserAssignment?) -> Unit
+    onTimerStart: (AutoUserAssignment) -> Unit
 ){
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
@@ -201,6 +201,7 @@ fun Homepage(
             ){
                 when(Tabs.tabs[it]){
                     Tabs.TIMER -> TimerDetails(
+                        user = user,
                         assignments = assignments,
                         onStart = { assignment ->
                             tryAndCatch { onTimerStart(assignment) }

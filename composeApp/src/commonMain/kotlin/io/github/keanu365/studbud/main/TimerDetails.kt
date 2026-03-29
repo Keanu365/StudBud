@@ -29,8 +29,9 @@ import io.github.keanu365.studbud.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimerDetails(
+    user: User?,
     assignments: List<Assignment>,
-    onStart: (AutoUserAssignment?) -> Unit
+    onStart: (AutoUserAssignment) -> Unit
 ){
     //TODO Add a way for user to access "saved" assignments (i.e. incomplete)
     var period by remember { mutableStateOf("25") }
@@ -61,14 +62,12 @@ fun TimerDetails(
         isBreaktimeError = breaktime !in 1..period-5
         isIterationsError = iterations <= 0
         if (!isPeriodError && !isBreaktimeError && !isIterationsError){
-            onStart(selectedAssignment?.let{ assignment ->
-                AutoUserAssignment(
-                    id = assignment.id,
-                    period = period,
-                    breaktime = breaktime,
-                    iterations = iterations
-                )
-            })
+            onStart(AutoUserAssignment(
+                id = selectedAssignment?.id ?: user?.id ?: error("User is null"),
+                period = period,
+                breaktime = breaktime,
+                iterations = iterations
+            ))
         }
     }
 

@@ -1,8 +1,11 @@
 package io.github.keanu365.studbud.navigation
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -11,7 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -20,7 +25,6 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
-import io.github.jan.supabase.network.HttpRequestOverride
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.AppPreferences
 import io.github.keanu365.studbud.Assignment
@@ -45,6 +49,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
+import studbud.composeapp.generated.resources.congrats
 import studbud.composeapp.generated.resources.success
 
 @Composable
@@ -94,6 +99,7 @@ fun NavRoot(
     var successTitle by remember { mutableStateOf("") }
     var successImage by remember {mutableStateOf<@Composable () -> Unit>({})}
     var successContent by remember {mutableStateOf<@Composable () -> Unit>({})}
+    var timerEnded by remember {mutableStateOf(false)}
 
     //Indicate here if you want back arrow / actions
     val showBackKeys = listOf(
@@ -133,7 +139,9 @@ fun NavRoot(
                                 coroutineScope.launch {
                                     try {
                                         val currentSession = supabase.auth.currentSessionOrNull()
-                                        val nextRoute = if (currentSession != null || appPrefs.signedIn.first()) {
+                                        val nextRoute = if (timerEnded) {
+                                            Route.SuccessPage
+                                        } else if (currentSession != null || appPrefs.signedIn.first()){
                                             Route.Homepage
                                         } else if (appPrefs.firstTimeUser.first()) {
                                             Route.SignUpPage
@@ -222,12 +230,20 @@ fun NavRoot(
                             onTimerStart = { assignment ->
                                 coroutineScope.launch {
                                     try {
-                                        userAssignmentInFocus = assignment?.let{ supabase.from("user_assignments")
-                                                .insert(it){select()}
+                                        user?.let{user ->
+                                            userAssignmentInFocus = if (assignment.id == user.id)
+                                                UserAssignment(
+                                                    user_id = user.id,
+                                                    period = assignment.period,
+                                                    breaktime = assignment.breaktime,
+                                                    iterations = assignment.iterations
+                                                )
+                                            else supabase.from("user_assignments")
+                                                .insert(assignment){select()}
                                                 .decodeSingle<UserAssignment>()
-                                        } ?: UserAssignment(user_id = user!!.id)
-                                        backStack.remove(key)
+                                        } ?: showSnackBar("Timer cannot be started as user is null.")
                                         backStack.add(Route.TimerPage)
+                                        backStack.remove(key) //Maybe remove this? IDK
                                     } catch (_: HttpRequestException) {
                                         showSnackBar("HTTP Request Timeout. Please try again later.")
                                     } catch (_: NullPointerException) {
@@ -314,9 +330,70 @@ fun NavRoot(
                     NavEntry(key){
                         Timer(
                             userAssignment = userAssignmentInFocus ?: error("UserAssignment is null"),
-                            onFinish = {
+                            onFinish = { userAssignment ->
                                 //TODO on timer finish
-                                showSnackBar(if (it == null) "Timer dismissed" else "Timer finished")
+                                if (userAssignment == null) backStack.remove(key)
+                                else {
+                                    val studsToAdd = userAssignment.iterations * userAssignment.period
+                                    splashLength = SplashLength.LONG
+                                    timerEnded = true
+                                    successTitle = "Yay, you did it!"
+                                    successImage = {
+                                        Image(
+                                            painter = painterResource(Res.drawable.congrats),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(15.dp)
+                                                .aspectRatio(1f)
+                                        )
+                                    }
+                                    successContent = {
+                                        Text(
+                                            text = "+$studsToAdd Studs",
+                                            fontSize = 36.sp,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    backStack.remove(key)
+                                    backStack.add(Route.SplashScreen)
+                                    backStack.remove(Route.Homepage)
+                                    coroutineScope.launch {
+                                        try {
+                                            if (userAssignment.id.isNotEmpty()) {
+                                                supabase.from("user_assignments")
+                                                    .update(
+                                                        {
+                                                            set("completed", true)
+                                                        }
+                                                    ) {
+                                                        filter {
+                                                            eq("id", userAssignment.id)
+                                                            eq("user_id", userAssignment.user_id)
+                                                        }
+                                                    }
+                                            }
+                                            user = supabase.from("profiles")
+                                                .update(
+                                                    {
+                                                        set("studs", user!!.studs + studsToAdd)
+                                                        set("all_time_studs", user!!.all_time_studs + studsToAdd)
+                                                    }
+                                                ){
+                                                    filter {
+                                                        eq("id", user!!.id)
+                                                    }
+                                                    select()
+                                                }
+                                                .decodeSingle<User>()
+                                        } catch (_: HttpRequestException) {
+                                            showSnackBar("Failed to save studs to database. Studs will be added the next time you're connected to the internet.")
+                                        } catch (_: NullPointerException) {
+                                            showSnackBar("User could not be found. Studs will be added the next time you're connected to the internet.")
+                                        }
+                                    }
+                                }
                             }
                         )
                     }
@@ -328,8 +405,9 @@ fun NavRoot(
                             image = successImage,
                             content = successContent,
                             onReturn = {
-                                backStack.remove(key)
+                                timerEnded = false
                                 backStack.add(Route.Homepage)
+                                backStack.remove(key)
                             },
                             modifier = Modifier
                                 .fillMaxSize()
