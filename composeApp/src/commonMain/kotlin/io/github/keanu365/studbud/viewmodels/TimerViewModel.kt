@@ -83,7 +83,7 @@ class TimerViewModel(
             supabase.from("assignments")
                 .select {
                     filter {
-                        eq("id", userAssignment.id)
+                        eq("id", userAssignment.assignment_id)
                     }
                 }
                 .decodeSingleOrNull<Assignment>()

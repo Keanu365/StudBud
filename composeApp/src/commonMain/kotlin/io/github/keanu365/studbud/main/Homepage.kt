@@ -1,6 +1,5 @@
 package io.github.keanu365.studbud.main
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -18,6 +17,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,72 +72,6 @@ fun Homepage(
     var showGroups by rememberSaveable { mutableStateOf(false) }
     var showAssignments by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(Unit){
-        pagerState.scrollToPage(1)
-    }
-    LaunchedEffect(networkStatus){
-        groups.clear()
-        assignments.clear()
-        if (networkStatus == NetworkStatus.Available){
-            //User
-            user = supabase.from("profiles")
-                .select {
-                    filter { eq("id", appPrefs.userId.first()) }
-                }
-                .decodeSingleOrNull<User>()
-            user?.let{onUserLoaded(it)}
-            //Groups
-            val currentGroups: List<Group>? = user?.let {
-                val userGroups = it.groups
-                val groupList = mutableListOf<Group>()
-                userGroups?.forEach { groupId ->
-                    val group = supabase.from("groups")
-                        .select {
-                            filter {
-                                eq("id", groupId)
-                            }
-                        }
-                        .decodeSingleOrNull<Group>()
-                    if (group != null) groupList.add(group)
-                }
-                groupList
-            }
-            groups.addAll(currentGroups ?: emptyList())
-            //Assignments
-            groups.forEach { group ->
-                group.assignments.forEach { assignmentId ->
-                    val assignment = supabase.from("assignments")
-                        .select {
-                            filter {
-                                eq("id", assignmentId)
-                            }
-                        }
-                        .decodeSingleOrNull<Assignment>()
-                    if (assignment != null) assignments.add(assignment)
-                }
-            }
-            user?.let{
-                supabase.from("assignments")
-                    .select{
-                        filter{
-                            eq("group_id", it.id)
-                        }
-                    }
-                    .decodeList<Assignment>()
-                    .forEach{ assignment ->
-                        assignments.add(assignment)
-                    }
-            }
-            //And finally store it locally in case user is offline the next time round
-            appPrefs.saveRawData(user, groups, assignments)
-            println("All successful!")
-        } else {
-            user = Json.decodeFromString(appPrefs.rawUserData.first())
-            groups.addAll(Json.decodeFromString(appPrefs.rawGroupsData.first()))
-            assignments.addAll(Json.decodeFromString(appPrefs.rawAssignmentsData.first()))
-        }
-    }
-
     fun tryAndCatch(block: () -> Unit){
         if (networkStatus != NetworkStatus.Available){
             showSnackBar("Please connect to the Internet!")
@@ -149,6 +83,102 @@ fun Homepage(
             } catch (_: Exception) {
                 showSnackBar("Something went wrong. Please try again later.")
             }
+        }
+    }
+
+    var isRefreshing by remember {mutableStateOf(false)}
+    var onLaunchRefresh by remember {mutableStateOf(true)}
+    var hasRefreshedThisSession by rememberSaveable { mutableStateOf(false) }
+    fun refresh() {
+        if (networkStatus != NetworkStatus.Available) {
+            if (onLaunchRefresh) onLaunchRefresh = false
+            else showSnackBar("Please connect to the Internet!")
+            return
+        }
+        coroutineScope.launch {
+            try {
+                isRefreshing = true
+                //User
+                user = supabase.from("profiles")
+                    .select {
+                        filter { eq("id", appPrefs.userId.first()) }
+                    }
+                    .decodeSingleOrNull<User>()
+                user?.let{onUserLoaded(it)}
+                //Groups
+                val currentGroups: List<Group>? = user?.let {
+                    val userGroups = it.groups
+                    val groupList = mutableListOf<Group>()
+                    userGroups?.forEach { groupId ->
+                        val group = supabase.from("groups")
+                            .select {
+                                filter {
+                                    eq("id", groupId)
+                                }
+                            }
+                            .decodeSingleOrNull<Group>()
+                        if (group != null) groupList.add(group)
+                    }
+                    groupList
+                }
+                groups.clear()
+                groups.addAll(currentGroups ?: emptyList())
+                //Assignments
+                val newAssignments = mutableListOf<Assignment>()
+                groups.forEach { group ->
+                    group.assignments.forEach { assignmentId ->
+                        val assignment = supabase.from("assignments")
+                            .select {
+                                filter {
+                                    eq("id", assignmentId)
+                                }
+                            }
+                            .decodeSingleOrNull<Assignment>()
+                        if (assignment != null) newAssignments.add(assignment)
+                    }
+                }
+                user?.let{
+                    supabase.from("assignments")
+                        .select{
+                            filter{
+                                eq("group_id", it.id)
+                            }
+                        }
+                        .decodeList<Assignment>()
+                        .forEach{ assignment ->
+                            newAssignments.add(assignment)
+                        }
+                }
+                assignments.clear()
+                assignments.addAll(newAssignments)
+                // And finally store it locally in case user is offline the next time round
+                appPrefs.saveRawData(user, groups, assignments)
+                println("All successful!")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                showSnackBar("Something went wrong with the refresh. Please try again later.")
+            } finally {
+                isRefreshing = false
+            }
+        }
+    }
+
+    LaunchedEffect(Unit){
+        pagerState.scrollToPage(1)
+        if (!hasRefreshedThisSession && networkStatus == NetworkStatus.Available) {
+            refresh()
+            hasRefreshedThisSession = true
+        }
+    }
+    LaunchedEffect(networkStatus){
+        groups.clear()
+        assignments.clear()
+        user = Json.decodeFromString(appPrefs.rawUserData.first())
+        groups.addAll(Json.decodeFromString(appPrefs.rawGroupsData.first()))
+        assignments.addAll(Json.decodeFromString(appPrefs.rawAssignmentsData.first()))
+        if (networkStatus == NetworkStatus.Available && !hasRefreshedThisSession && !isRefreshing) {
+            refresh()
+            hasRefreshedThisSession = true
         }
     }
 
@@ -190,7 +220,9 @@ fun Homepage(
             }
         }
     ){ innerPadding ->
-        Box(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {refresh()},
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -201,10 +233,9 @@ fun Homepage(
             ){
                 when(Tabs.tabs[it]){
                     Tabs.TIMER -> TimerDetails(
-                        user = user,
                         assignments = assignments,
                         onStart = { assignment ->
-                            tryAndCatch { onTimerStart(assignment) }
+                            onTimerStart(assignment)
                         }
                     )
                     Tabs.HOME -> Home(

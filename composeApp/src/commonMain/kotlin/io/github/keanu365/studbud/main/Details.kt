@@ -94,6 +94,13 @@ fun GroupDetailsPage(
     ){
         Spacer(modifier = Modifier.height(10.dp))
         TitleText("Group Details")
+        if (networkStatus != NetworkStatus.Available){
+            SurfaceAlert(
+                alertType = AlertType.WARNING,
+                message = "Your internet connection is unstable/lost! " +
+                        "Group members and assignments will not appear properly until you connect to the internet."
+            )
+        }
         Text(
             text = "Name",
             style = MaterialTheme.typography.headlineSmall,
@@ -124,13 +131,6 @@ fun GroupDetailsPage(
             text = group.description.ifEmpty { "No description provided." },
             style = MaterialTheme.typography.bodyLarge
         )
-        if (networkStatus != NetworkStatus.Available){
-            SurfaceAlert(
-                alertType = AlertType.WARNING,
-                message = "Your internet connection is unstable/lost! " +
-                        "Group members and assignments will not appear properly until you connect to the internet."
-            )
-        }
         AnimatedDropdown(
             show = showMembers,
             title = "Members (${group.members.size})",
@@ -152,7 +152,8 @@ fun GroupDetailsPage(
 fun AssignmentDetailsPage(
     assignment: Assignment,
     modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
-    onGroupClicked: (Group) -> Unit = {}
+    onGroupClicked: (Group) -> Unit = {},
+    onDo: ((Assignment) -> Unit)? = null
 ){
     var group by remember {mutableStateOf<Group?>(null)}
     val networkStatus by rememberNetworkStatus()
@@ -243,5 +244,17 @@ fun AssignmentDetailsPage(
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(bottom = 5.dp, top = 10.dp)
         )
+        Spacer(Modifier.height(10.dp))
+        onDo?.let{
+            TertiaryButton(
+                onClick = { it(assignment) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp)
+            ){
+                Text(
+                    text = "Do This Assignment",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
     }
 }

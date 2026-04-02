@@ -96,6 +96,7 @@ fun App() {
                     subclass(Route.SuccessPage::class, Route.SuccessPage.serializer())
                     subclass(Route.AddAssignmentPage::class, Route.AddAssignmentPage.serializer())
                     subclass(Route.TimerPage::class, Route.TimerPage.serializer())
+                    subclass(Route.TimerDetailsPage::class, Route.TimerDetailsPage.serializer())
                 }
             }
         },

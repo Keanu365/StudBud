@@ -1,9 +1,12 @@
 package io.github.keanu365.studbud.navigation
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +31,7 @@ import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.AppPreferences
 import io.github.keanu365.studbud.Assignment
+import io.github.keanu365.studbud.AutoUserAssignment
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.SplashLength
 import io.github.keanu365.studbud.SplashScreen
@@ -44,6 +48,7 @@ import io.github.keanu365.studbud.main.AssignmentDetailsPage
 import io.github.keanu365.studbud.main.GroupDetailsPage
 import io.github.keanu365.studbud.main.Homepage
 import io.github.keanu365.studbud.main.Timer
+import io.github.keanu365.studbud.main.TimerDetails
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -94,6 +99,32 @@ fun NavRoot(
         backStack.add(Route.SplashScreen)
         backStack.remove(key)
     }
+    fun startTimer(assignment: AutoUserAssignment){
+        coroutineScope.launch {
+            try {
+                user?.let{user ->
+                    userAssignmentInFocus = if (assignment.assignment_id.isBlank())
+                        UserAssignment(
+                            user_id = user.id,
+                            period = assignment.period,
+                            breaktime = assignment.breaktime,
+                            iterations = assignment.iterations
+                        )
+                    else supabase.from("user_assignments")
+                        .insert(assignment){select()}
+                        .decodeSingle<UserAssignment>()
+                } ?: showSnackBar("Timer cannot be started as user is null.")
+                backStack.add(Route.TimerPage)
+                for (i in backStack.size-2 downTo 0){
+                    if (backStack[i] != Route.Homepage) backStack.removeAt(i)
+                }
+            } catch (_: HttpRequestException) {
+                showSnackBar("Please connect to the Internet!")
+            } catch (_: NullPointerException) {
+                showSnackBar("Error fetching user data. Please try again later.")
+            }
+        }
+    }
 
     //SuccessPage stuff
     var successTitle by remember { mutableStateOf("") }
@@ -105,14 +136,17 @@ fun NavRoot(
     val showBackKeys = listOf(
         Route.AddGroupPage,
         Route.GroupDetailsPage,
-        Route.AssignmentDetailsPage
+        Route.AssignmentDetailsPage,
+        Route.AddAssignmentPage,
+        Route.TimerDetailsPage
     )
     val showActionsKeys = listOf(
         Route.ThemeTest,
         Route.Homepage,
         Route.AddGroupPage,
         Route.GroupDetailsPage,
-        Route.AssignmentDetailsPage
+        Route.AssignmentDetailsPage,
+        Route.TimerDetailsPage
     )
     LaunchedEffect(backStack.last()){
         changeTopBar(
@@ -228,28 +262,7 @@ fun NavRoot(
                                 backStack.add(Route.AddAssignmentPage)
                             },
                             onTimerStart = { assignment ->
-                                coroutineScope.launch {
-                                    try {
-                                        user?.let{user ->
-                                            userAssignmentInFocus = if (assignment.id == user.id)
-                                                UserAssignment(
-                                                    user_id = user.id,
-                                                    period = assignment.period,
-                                                    breaktime = assignment.breaktime,
-                                                    iterations = assignment.iterations
-                                                )
-                                            else supabase.from("user_assignments")
-                                                .insert(assignment){select()}
-                                                .decodeSingle<UserAssignment>()
-                                        } ?: showSnackBar("Timer cannot be started as user is null.")
-                                        backStack.add(Route.TimerPage)
-                                        backStack.remove(key) //Maybe remove this? IDK
-                                    } catch (_: HttpRequestException) {
-                                        showSnackBar("HTTP Request Timeout. Please try again later.")
-                                    } catch (_: NullPointerException) {
-                                        showSnackBar("Error fetching user data. Please try again later.")
-                                    }
-                                }
+                                startTimer(assignment)
                             }
                         )
                     }
@@ -299,6 +312,10 @@ fun NavRoot(
                                 //Clean up and remove previous group details
                                 backStack.remove(Route.GroupDetailsPage)
                                 backStack.add(Route.GroupDetailsPage)
+                            },
+                            onDo = { assignment ->
+                                assignmentInFocus = assignment
+                                backStack.add(Route.TimerDetailsPage)
                             }
                         )
                     }
@@ -331,8 +348,9 @@ fun NavRoot(
                         Timer(
                             userAssignment = userAssignmentInFocus ?: error("UserAssignment is null"),
                             onFinish = { userAssignment ->
-                                //TODO on timer finish
-                                if (userAssignment == null) backStack.remove(key)
+                                if (userAssignment == null) {
+                                    backStack.remove(key)
+                                }
                                 else {
                                     val studsToAdd = userAssignment.iterations * userAssignment.period
                                     splashLength = SplashLength.LONG
@@ -361,7 +379,7 @@ fun NavRoot(
                                     backStack.remove(Route.Homepage)
                                     coroutineScope.launch {
                                         try {
-                                            if (userAssignment.id.isNotEmpty()) {
+                                            if (userAssignment.assignment_id.isNotEmpty()) {
                                                 supabase.from("user_assignments")
                                                     .update(
                                                         {
@@ -369,7 +387,7 @@ fun NavRoot(
                                                         }
                                                     ) {
                                                         filter {
-                                                            eq("id", userAssignment.id)
+                                                            eq("assignment_id", userAssignment.assignment_id)
                                                             eq("user_id", userAssignment.user_id)
                                                         }
                                                     }
@@ -396,6 +414,21 @@ fun NavRoot(
                                 }
                             }
                         )
+                    }
+                }
+                Route.TimerDetailsPage -> {
+                    NavEntry(key) {
+                        Column{
+                            Spacer(Modifier.height(20.dp))
+                            TimerDetails(
+                                assignments = emptyList(),
+                                startingAssignment = assignmentInFocus,
+                                onStart = {
+                                    startTimer(it)
+                                },
+                                selectable = false
+                            )
+                        }
                     }
                 }
                 Route.SuccessPage -> {

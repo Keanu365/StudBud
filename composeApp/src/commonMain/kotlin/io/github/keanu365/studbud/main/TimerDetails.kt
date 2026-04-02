@@ -2,8 +2,10 @@ package io.github.keanu365.studbud.main
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -25,14 +27,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.keanu365.studbud.*
+import my.connectivity.kmp.data.model.NetworkStatus
+import my.connectivity.kmp.rememberNetworkStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimerDetails(
-    user: User?,
     assignments: List<Assignment>,
-    onStart: (AutoUserAssignment) -> Unit
+    onStart: (AutoUserAssignment) -> Unit,
+    startingAssignment: Assignment? = null,
+    selectable: Boolean = startingAssignment == null
 ){
+    val networkStatus by rememberNetworkStatus()
     //TODO Add a way for user to access "saved" assignments (i.e. incomplete)
     var period by remember { mutableStateOf("25") }
     var breaktime by remember { mutableStateOf("5") }
@@ -43,7 +49,7 @@ fun TimerDetails(
     var isIterationsError by remember {mutableStateOf(false)}
 
     var isAssignmentsExpanded by remember { mutableStateOf(false) }
-    var selectedAssignment by remember {mutableStateOf<Assignment?>(null)}
+    var selectedAssignment by remember {mutableStateOf(startingAssignment)}
     fun checkDetails() = run {
         val period = period.ifEmpty {
             period = "0"
@@ -63,7 +69,7 @@ fun TimerDetails(
         isIterationsError = iterations <= 0
         if (!isPeriodError && !isBreaktimeError && !isIterationsError){
             onStart(AutoUserAssignment(
-                id = selectedAssignment?.id ?: user?.id ?: error("User is null"),
+                assignment_id = selectedAssignment?.id ?: "",
                 period = period,
                 breaktime = breaktime,
                 iterations = iterations
@@ -83,7 +89,13 @@ fun TimerDetails(
                 .verticalScroll(rememberScrollState())
         ){
             TitleText("Study Timer")
-            //SurfaceAlert()
+            if (networkStatus != NetworkStatus.Available){
+                SurfaceAlert(
+                    alertType = AlertType.WARNING,
+                    message = "While offline, no assignments will be available."
+                )
+                Spacer(Modifier.height(20.dp))
+            }
             ExposedDropdownMenuBox(
                 expanded = isAssignmentsExpanded,
                 onExpandedChange = { isAssignmentsExpanded = !isAssignmentsExpanded },
@@ -94,14 +106,14 @@ fun TimerDetails(
                     readOnly = true,
                     isError = false,
                     labelText = "Assignment",
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = isAssignmentsExpanded)
-                    },
+                    trailingIcon = if (selectable) {
+                        {ExposedDropdownMenuDefaults.TrailingIcon(expanded = isAssignmentsExpanded)}
+                    } else null,
                     modifier = Modifier
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                         .fillMaxWidth()
                 )
-                ExposedDropdownMenu(
+                if (selectable) ExposedDropdownMenu(
                     expanded = isAssignmentsExpanded,
                     onDismissRequest = { isAssignmentsExpanded = false },
                     modifier = Modifier

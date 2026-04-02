@@ -43,7 +43,8 @@ data class AutoAssignment(
 )
 @Serializable
 data class UserAssignment(
-    val id: String = "",
+    val uuid: String = "",
+    val assignment_id: String = "",
     val created_at: Instant = Clock.System.now(),
     val user_id: String,
     val period: Int = 25,
@@ -53,7 +54,7 @@ data class UserAssignment(
 )
 @Serializable
 data class AutoUserAssignment(
-    val id: String,
+    val assignment_id: String,
     val period: Int = 25,
     val breaktime: Int = 5,
     val iterations: Int = 1
