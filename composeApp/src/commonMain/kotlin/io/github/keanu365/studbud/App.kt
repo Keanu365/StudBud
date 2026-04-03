@@ -9,6 +9,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,14 +47,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.keanu365.studbud.navigation.NavRoot
 import io.github.keanu365.studbud.navigation.Route
 import io.github.keanu365.studbud.theme.StudBudTheme
+import io.github.keanu365.studbud.viewmodels.SettingsViewModel
+import io.github.keanu365.studbud.viewmodels.Theme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import my.connectivity.kmp.data.model.NetworkStatus
@@ -64,6 +71,7 @@ import studbud.composeapp.generated.resources.icon_arrow_back
 import studbud.composeapp.generated.resources.icon_leaderboard
 import studbud.composeapp.generated.resources.icon_settings
 import studbud.composeapp.generated.resources.studbud
+import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,10 +89,6 @@ fun App() {
         configuration = SavedStateConfiguration{
             serializersModule = SerializersModule{
                 polymorphic(NavKey::class){
-                    // All future screens need to be added here,
-                    // like intents in AndroidManifest.xml.
-                    // Don't forget to do so at Line 35 too!
-                    // Oh, and go serialize this in Route.kt before doing this
                     subclass(Route.SplashScreen::class, Route.SplashScreen.serializer())
                     subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
                     subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
@@ -97,6 +101,8 @@ fun App() {
                     subclass(Route.AddAssignmentPage::class, Route.AddAssignmentPage.serializer())
                     subclass(Route.TimerPage::class, Route.TimerPage.serializer())
                     subclass(Route.TimerDetailsPage::class, Route.TimerDetailsPage.serializer())
+                    subclass(Route.SettingsPage::class, Route.SettingsPage.serializer())
+                    subclass(Route.ImageViewPage::class, Route.ImageViewPage.serializer())
                 }
             }
         },
@@ -137,7 +143,18 @@ fun App() {
             hasShownFirstConnection = true
         }
     }
-    StudBudTheme {
+
+    val settingsViewModel = viewModel { SettingsViewModel(appPrefs = appPrefs) }
+    val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
+
+    StudBudTheme(
+        darkTheme = when(settings.theme){
+            Theme.LIGHT -> false
+            Theme.DARK -> true
+            Theme.SYSTEM -> isSystemInDarkTheme()
+            Theme.TIME -> Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time.hour !in 7..19
+        }
+    ) {
         val networkBgAnimation = animateColorAsState(
             targetValue = if (isNetworkAvailable == NetworkStatus.Available) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.surface,
@@ -167,7 +184,7 @@ fun App() {
                     },
             ){
                 Column(modifier = Modifier.padding(innerPadding)) {
-                    Spacer(
+                    if (backStack.last() != Route.ImageViewPage) Spacer(
                         modifier = Modifier.height(spacerHeight)
                     )
                     AnimatedVisibility(
@@ -191,6 +208,8 @@ fun App() {
                     }
                     if (getDeviceType() != "Phone") Spacer(Modifier.height(15.dp))
                     NavRoot(
+                        appPrefs = appPrefs,
+                        settingsViewModel = settingsViewModel,
                         backStack = backStack,
                         modifier = Modifier
                             .pointerInput(Unit) {
@@ -199,18 +218,16 @@ fun App() {
                                     keyboardController?.hide()
                                 }
                             },
-                        appPrefs = appPrefs,
                         showSnackBar = { message ->
                             mainAppScope.launch {
                                 snackBarHostState.showSnackbar(message)
                             }
-                        },
-                        changeTopBar = { showBar, showBack, newShowActions ->
-                            showTopBar = showBar
-                            showBackArrow = showBack
-                            showActions = newShowActions
                         }
-                    )
+                    ) { showBar, showBack, newShowActions ->
+                        showTopBar = showBar
+                        showBackArrow = showBack
+                        showActions = newShowActions
+                    }
                 }
                 //Top app bar
                 AnimatedVisibility(
@@ -272,7 +289,7 @@ fun App() {
                                 }
                                 IconButton(
                                     onClick = {
-                                        //TODO Settings
+                                        backStack.add(Route.SettingsPage)
                                     }
                                 ){
                                     Icon(

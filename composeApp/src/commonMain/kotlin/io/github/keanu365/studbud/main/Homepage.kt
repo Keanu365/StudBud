@@ -58,7 +58,9 @@ fun Homepage(
     onGroupClicked: (Group) -> Unit,
     onAssignmentClicked: (Assignment) -> Unit,
     onAssignmentAdd: (User) -> Unit,
-    onTimerStart: (AutoUserAssignment) -> Unit
+    onTimerStart: (AutoUserAssignment) -> Unit,
+    onViewPhoto: () -> Unit = {},
+    onEditPhoto: () -> Unit = {},
 ){
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
@@ -152,7 +154,7 @@ fun Homepage(
                 assignments.clear()
                 assignments.addAll(newAssignments)
                 // And finally store it locally in case user is offline the next time round
-                appPrefs.saveRawData(user, groups, assignments)
+                appPrefs.saveRawUserData(user, groups, assignments)
                 println("All successful!")
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -173,9 +175,11 @@ fun Homepage(
     LaunchedEffect(networkStatus){
         groups.clear()
         assignments.clear()
-        user = Json.decodeFromString(appPrefs.rawUserData.first())
-        groups.addAll(Json.decodeFromString(appPrefs.rawGroupsData.first()))
-        assignments.addAll(Json.decodeFromString(appPrefs.rawAssignmentsData.first()))
+        try {
+            user = Json.decodeFromString(appPrefs.rawUserData.first())
+            groups.addAll(Json.decodeFromString(appPrefs.rawGroupsData.first()))
+            assignments.addAll(Json.decodeFromString(appPrefs.rawAssignmentsData.first()))
+        } catch (_: Exception) {}
         if (networkStatus == NetworkStatus.Available && !hasRefreshedThisSession && !isRefreshing) {
             refresh()
             hasRefreshedThisSession = true
@@ -258,7 +262,9 @@ fun Homepage(
                         onSignOut = {
                             tryAndCatch { onSignOut() }
                         },
-                        user = user
+                        user = user,
+                        onViewPhoto = onViewPhoto,
+                        onEditPhoto = onEditPhoto
                     )
                 }
                 Spacer(Modifier.height(60.dp)) //Buffer for buttons

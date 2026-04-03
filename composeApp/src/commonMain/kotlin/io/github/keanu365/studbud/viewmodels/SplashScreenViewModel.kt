@@ -5,8 +5,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class SplashScreenViewModel : ViewModel() {
-    // Check back at https://youtu.be/G_e9XL5tI6U?si=EWVbB3cCQddgH522
-    // for next view models
     private val _tips = MutableStateFlow(
         listOf(
             "Smart suggestions can suggest assignments and study times for you!",
@@ -14,7 +12,7 @@ class SplashScreenViewModel : ViewModel() {
             "Compete against your friends on the group leaderboard!",
             "Studs are points given when you complete your study sessions!",
             "Each minute that you study earns you 1 stud!",
-            "Be careful - ending your session too early may cost you 10 studs!",
+            "Need to hurry? Fret not - you can save your sessions for later!",
             "StudBud can help you remove distractions while studying!",
             "Thanks for using StudBud!",
             "Liking StudBud? Please leave a review!",
@@ -28,7 +26,7 @@ class SplashScreenViewModel : ViewModel() {
             "don't forget to like and subscribe",
             "pineapples",
             "i'm inside your walls",
-            "yo"
+            "hola"
         )
     )
     val tips = _tips.asStateFlow()

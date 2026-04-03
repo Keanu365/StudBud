@@ -20,15 +20,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import io.github.ismoy.imagepickerkmp.domain.extensions.loadBytes
+import io.github.ismoy.imagepickerkmp.domain.models.MimeType
+import io.github.ismoy.imagepickerkmp.presentation.ui.components.GalleryPickerLauncher
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.storage.storage
 import io.github.keanu365.studbud.AppPreferences
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.AutoUserAssignment
@@ -47,9 +52,13 @@ import io.github.keanu365.studbud.main.AddGroupPage
 import io.github.keanu365.studbud.main.AssignmentDetailsPage
 import io.github.keanu365.studbud.main.GroupDetailsPage
 import io.github.keanu365.studbud.main.Homepage
+import io.github.keanu365.studbud.main.ImageView
+import io.github.keanu365.studbud.main.SettingsPage
 import io.github.keanu365.studbud.main.Timer
 import io.github.keanu365.studbud.main.TimerDetails
 import io.github.keanu365.studbud.supabase
+import io.github.keanu365.studbud.viewmodels.SettingsViewModel
+import io.ktor.http.ContentType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -59,11 +68,12 @@ import studbud.composeapp.generated.resources.success
 
 @Composable
 fun NavRoot(
+    appPrefs: AppPreferences,
     backStack: NavBackStack<NavKey>,
     modifier: Modifier = Modifier,
-    appPrefs: AppPreferences,
+    settingsViewModel: SettingsViewModel = viewModel { SettingsViewModel(appPrefs = appPrefs) },
     showSnackBar: (String) -> Unit,
-    changeTopBar: (Boolean, Boolean, Boolean) -> Unit = {_, _, _ ->} //showBar, showBack, showActions
+    changeTopBar: (Boolean, Boolean, Boolean) -> Unit = { _, _, _ -> } //showBar, showBack, showActions){}
 ){
     val coroutineScope = rememberCoroutineScope()
     var user by remember { mutableStateOf<User?>(null) }
@@ -132,13 +142,14 @@ fun NavRoot(
     var successContent by remember {mutableStateOf<@Composable () -> Unit>({})}
     var timerEnded by remember {mutableStateOf(false)}
 
-    //Indicate here if you want back arrow / actions
+    //Indicate here if you want back arrow / actions / top bar
     val showBackKeys = listOf(
         Route.AddGroupPage,
         Route.GroupDetailsPage,
         Route.AssignmentDetailsPage,
         Route.AddAssignmentPage,
-        Route.TimerDetailsPage
+        Route.TimerDetailsPage,
+        Route.SettingsPage
     )
     val showActionsKeys = listOf(
         Route.ThemeTest,
@@ -148,11 +159,74 @@ fun NavRoot(
         Route.AssignmentDetailsPage,
         Route.TimerDetailsPage
     )
+    val hideTopBar = listOf(
+        Route.SplashScreen,
+        Route.ImageViewPage
+    )
     LaunchedEffect(backStack.last()){
         changeTopBar(
-            backStack.last() != Route.SplashScreen,
+            !hideTopBar.contains(backStack.last()),
             showBackKeys.contains(backStack.last()),
             showActionsKeys.contains(backStack.last())
+        )
+    }
+
+    var showGallery by remember { mutableStateOf(false) }
+    if (showGallery) {
+        GalleryPickerLauncher(
+            onPhotosSelected = { photos ->
+                showGallery = false
+                val selectedImage = photos[0]
+
+                coroutineScope.launch {
+                    try {
+                        val currentUser = user ?: return@launch
+
+                        // 1. Convert the Picker Result to ByteArray (KMP friendly)
+                        val imageBytes = selectedImage.loadBytes()
+                        val fileType = selectedImage.fileName?.substringAfterLast(".") ?: "png"
+
+                        // 2. Define a unique path
+                        // Using user.id + timestamp ensures unique filenames and prevents stale caches
+                        val fileName = currentUser.id
+                        val bucket = supabase.storage.from("avatars")
+
+                        // 3. Upload the ByteArray to Supabase Storage
+                        bucket.upload(fileName, imageBytes) {
+                            upsert = true
+                            contentType = ContentType.parse("image/$fileType")
+                        }
+
+                        // 4. Get the Public URL of the new photo
+                        val publicUrl = bucket.publicUrl(fileName)
+
+                        // 5. Update the 'profiles' table with the new URL
+                        supabase.from("profiles").update(
+                            {
+                                set("avatar_url", publicUrl)
+                            }
+                        ) {
+                            filter { eq("id", currentUser.id) }
+                        }
+
+                        // 6. Update local state so the UI reflects the change immediately
+                        user = currentUser.copy(avatar_url = publicUrl)
+                        showSnackBar("Profile photo updated!")
+
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        showSnackBar("Failed to upload image. Please check your connection.")
+                    }
+                }
+            },
+            onError = { error ->
+                showGallery = false
+                error.message?.let { showSnackBar(it) }
+            },
+            onDismiss = { showGallery = false },
+            enableCrop = true,
+            mimeTypes = listOf(MimeType.IMAGE_ALL),
+            mimeTypeMismatchMessage = "Only allows images"
         )
     }
 
@@ -263,6 +337,12 @@ fun NavRoot(
                             },
                             onTimerStart = { assignment ->
                                 startTimer(assignment)
+                            },
+                            onViewPhoto = {
+                                backStack.add(Route.ImageViewPage)
+                            },
+                            onEditPhoto = {
+                                showGallery = true
                             }
                         )
                     }
@@ -446,6 +526,27 @@ fun NavRoot(
                                 .fillMaxSize()
                                 .padding(15.dp)
                                 .padding(bottom = 20.dp)
+                        )
+                    }
+                }
+                Route.SettingsPage -> {
+                    NavEntry(key){
+                        SettingsPage(
+                            appPrefs = appPrefs,
+                            viewModel = settingsViewModel,
+                        )
+                    }
+                }
+                Route.ImageViewPage -> {
+                    NavEntry(key){
+                        ImageView(
+                            user = user ?: error("User is null"),
+                            onReturn = {
+                                backStack.remove(key)
+                            },
+                            onEdit = {
+                                showGallery = true
+                            }
                         )
                     }
                 }

@@ -67,6 +67,8 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
             implementation(libs.connectivity.kmp)
+            implementation(libs.zoomable)
+            implementation(libs.imagepickerkmp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

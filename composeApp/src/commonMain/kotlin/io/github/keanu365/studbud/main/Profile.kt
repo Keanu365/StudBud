@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import io.github.keanu365.studbud.ErrorButton
 import io.github.keanu365.studbud.User
-import io.github.keanu365.studbud.theme.buttonColors
+import io.github.keanu365.studbud.theme.errorButtonColors
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.default
@@ -54,7 +54,9 @@ import studbud.composeapp.generated.resources.icon_visible
 @Composable
 fun Profile(
     onSignOut: () -> Unit,
-    user: User? = null
+    user: User? = null,
+    onViewPhoto: () -> Unit = {},
+    onEditPhoto: () -> Unit = {},
 ){
     val density = LocalDensity.current
     var tapOffset by remember {mutableStateOf(Offset.Zero)}
@@ -84,7 +86,7 @@ fun Profile(
                         onSignOut()
                         showSignOutAlert = false
                     },
-                    colors = buttonColors()
+                    colors = errorButtonColors()
                 ){Text("Yes")}
             },
             dismissButton = {
@@ -154,6 +156,8 @@ fun Profile(
                     PhotoMenu(
                         expanded = showDropdownMenu,
                         onDismissRequest = { showDropdownMenu = false },
+                        onView = onViewPhoto,
+                        onEdit = onEditPhoto
                     )
                 }
             }
@@ -204,6 +208,8 @@ fun Profile(
 private fun PhotoMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
+    onView: () -> Unit,
+    onEdit: () -> Unit,
 ){
     DropdownMenu(
         expanded = expanded,
@@ -217,7 +223,7 @@ private fun PhotoMenu(
                     contentDescription = null
                 )
             },
-            onClick = {} //TODO View Photo
+            onClick = onView
         )
         HorizontalDivider()
         DropdownMenuItem(
@@ -228,7 +234,7 @@ private fun PhotoMenu(
                     contentDescription = null
                 )
             },
-            onClick = {} //TODO Change Photo
+            onClick = onEdit
         )
     }
 }

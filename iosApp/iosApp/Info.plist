@@ -9,5 +9,9 @@
         <key>NSAllowsArbitraryLoads</key>
         <true/>
     </dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Camera access needed to take photos</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Photo library access needed to select images</string>
 </dict>
 </plist>
