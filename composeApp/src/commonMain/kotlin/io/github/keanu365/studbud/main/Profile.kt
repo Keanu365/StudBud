@@ -41,6 +41,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import io.github.keanu365.studbud.ErrorButton
 import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.theme.errorButtonColors
@@ -114,7 +117,11 @@ fun Profile(
             Box{
                 user?.let{ user ->
                     AsyncImage(
-                        model = user.avatar_url,
+                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(user.avatar_url)
+                            .memoryCachePolicy(CachePolicy.DISABLED) // Forces it to ignore RAM cache
+                            .diskCachePolicy(CachePolicy.DISABLED)   // Forces it to ignore Disk cache
+                            .build(),
                         contentDescription = "Profile Picture",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -187,6 +194,7 @@ fun Profile(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(modifier = Modifier.height(50.dp))
         }
         ErrorButton(
             onClick = {

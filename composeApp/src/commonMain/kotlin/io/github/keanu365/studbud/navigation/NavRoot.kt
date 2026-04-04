@@ -65,6 +65,7 @@ import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.congrats
 import studbud.composeapp.generated.resources.success
+import kotlin.time.Clock
 
 @Composable
 fun NavRoot(
@@ -182,36 +183,31 @@ fun NavRoot(
                     try {
                         val currentUser = user ?: return@launch
 
-                        // 1. Convert the Picker Result to ByteArray (KMP friendly)
                         val imageBytes = selectedImage.loadBytes()
                         val fileType = selectedImage.fileName?.substringAfterLast(".") ?: "png"
 
-                        // 2. Define a unique path
-                        // Using user.id + timestamp ensures unique filenames and prevents stale caches
                         val fileName = currentUser.id
                         val bucket = supabase.storage.from("avatars")
 
-                        // 3. Upload the ByteArray to Supabase Storage
                         bucket.upload(fileName, imageBytes) {
                             upsert = true
                             contentType = ContentType.parse("image/$fileType")
                         }
 
-                        // 4. Get the Public URL of the new photo
                         val publicUrl = bucket.publicUrl(fileName)
+                        val cacheBustedUrl = "$publicUrl?t=${Clock.System.now().toEpochMilliseconds()}"
+                        // This combined with the ImageBuilder stuff in AsyncImage should make sure
+                        // the image is always up to date.
 
-                        // 5. Update the 'profiles' table with the new URL
                         supabase.from("profiles").update(
                             {
-                                set("avatar_url", publicUrl)
+                                set("avatar_url", cacheBustedUrl)
                             }
                         ) {
                             filter { eq("id", currentUser.id) }
                         }
 
-                        // 6. Update local state so the UI reflects the change immediately
-                        user = currentUser.copy(avatar_url = publicUrl)
-                        showSnackBar("Profile photo updated!")
+                        showSnackBar("Profile photo updated! Refresh to view.")
 
                     } catch (e: Exception) {
                         e.printStackTrace()

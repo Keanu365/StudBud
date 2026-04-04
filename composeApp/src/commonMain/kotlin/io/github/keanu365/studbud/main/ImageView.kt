@@ -16,6 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import io.github.keanu365.studbud.User
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
@@ -37,7 +40,11 @@ fun ImageView(
     ){
         val zoomState = rememberZoomState()
         AsyncImage(
-            model = user.avatar_url,
+            model = ImageRequest.Builder(LocalPlatformContext.current)
+                .data(user.avatar_url)
+                .memoryCachePolicy(CachePolicy.DISABLED) // Forces it to ignore RAM cache
+                .diskCachePolicy(CachePolicy.DISABLED)   // Forces it to ignore Disk cache
+                .build(),
             contentDescription = "Zoomable image",
             contentScale = ContentScale.Fit,
             onSuccess = { state ->

@@ -12,6 +12,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -27,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.jan.supabase.postgrest.from
@@ -35,6 +38,7 @@ import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.AutoUserAssignment
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.User
+import io.github.keanu365.studbud.getDeviceType
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -46,6 +50,7 @@ import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_account
 import studbud.composeapp.generated.resources.icon_home
+import studbud.composeapp.generated.resources.icon_refresh
 import studbud.composeapp.generated.resources.icon_timer
 
 @Composable
@@ -268,6 +273,23 @@ fun Homepage(
                     )
                 }
                 Spacer(Modifier.height(60.dp)) //Buffer for buttons
+            }
+            if (getDeviceType() == "Desktop") IconButton(
+                enabled = !isRefreshing,
+                onClick = {refresh()},
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.tertiary,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 15.dp)
+                    .size(50.dp)
+            ){
+                Icon(
+                    painter = painterResource(Res.drawable.icon_refresh),
+                    contentDescription = "Refresh",
+                )
             }
         }
     }

@@ -36,4 +36,6 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.material3)
     implementation(libs.androidx.startup)
+    implementation(libs.androidx.datastore)
+    implementation(libs.androidx.datastore.preferences)
 }
