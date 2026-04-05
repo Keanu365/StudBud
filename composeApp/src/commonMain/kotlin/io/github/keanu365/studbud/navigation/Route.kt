@@ -30,6 +30,8 @@ sealed interface Route: NavKey {
     @Serializable
     data object TimerDetailsPage: Route, NavKey
     @Serializable
+    data object Leaderboard: Route, NavKey
+    @Serializable
     data object SettingsPage: Route, NavKey
     @Serializable
     data object ImageViewPage: Route, NavKey

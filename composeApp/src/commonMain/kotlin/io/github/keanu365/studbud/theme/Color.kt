@@ -17,3 +17,7 @@ val SurfaceGrey = Color(0xFFBDBDBD)
 val BgBlack = Color(0xFF222222)
 val SurfaceBlack = Color(0xFF4B4B4B)
 val SecondText = Color(0xFF7E7E7E)
+
+val Gold = Color(0xFFBC9C22)
+val Silver = Color(0xFF9E9E9E)
+val Bronze = Color(0xFF8B4513) //maybe change to #CD7F32 as per Canva

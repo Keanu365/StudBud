@@ -59,6 +59,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.keanu365.studbud.theme.Bronze
+import io.github.keanu365.studbud.theme.Gold
+import io.github.keanu365.studbud.theme.Silver
+import io.github.keanu365.studbud.theme.SurfaceBlack
 import io.github.keanu365.studbud.theme.buttonColors
 import io.github.keanu365.studbud.theme.datePickerColors
 import io.github.keanu365.studbud.theme.errorButtonColors
@@ -293,14 +297,16 @@ fun AssignmentsDropdown(
 
 @Composable
 fun DataView(
+    modifier: Modifier = Modifier,
     dataList: List<Any>,
     firstLabel: String = "Name",
     secondLabel: String = " ",
-    onDataClicked: ((Any) -> Unit)? = null
+    onDataClicked: ((Any) -> Unit)? = null,
+    isLeaderboard: Boolean = false
 ){
-    Column(Modifier.padding(vertical = 10.dp)){
+    Column(modifier.padding(vertical = 10.dp)){
         if (dataList.isEmpty()) Text(
-            text = "Nothing to see here yet!",
+            text = if (isLeaderboard) "Loading..." else "Nothing to see here yet!",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) else Row(
@@ -325,6 +331,7 @@ fun DataView(
             when (data) {
                 is User -> {
                     firstText = data.username
+                    if (isLeaderboard) secondText = "${data.studs}"
                 }
                 is Group -> {
                     firstText = data.name
@@ -335,14 +342,21 @@ fun DataView(
                     secondText = "${data.due_date.day}/${data.due_date.month.number}/${data.due_date.year}"
                 }
             }
+            val bgColor = when(index){
+                0 if (isLeaderboard) -> Gold
+                1 if (isLeaderboard) -> Silver
+                2 if (isLeaderboard) -> Bronze
+                else -> if (index % 2 == 0) Color.Transparent
+                else MaterialTheme.colorScheme.surface
+            }
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(40.dp)
                     .background(
-                        color = if (index % 2 == 0) Color.Transparent
-                        else MaterialTheme.colorScheme.surface,
+                        color = bgColor,
                         shape = RoundedCornerShape(5.dp)
                     )
                     .then(
@@ -352,6 +366,7 @@ fun DataView(
             ){
                 Text(
                     text = firstText,
+                    color = if (bgColor == Silver || bgColor == Gold) SurfaceBlack else Color.Unspecified,
                     fontSize = 16.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

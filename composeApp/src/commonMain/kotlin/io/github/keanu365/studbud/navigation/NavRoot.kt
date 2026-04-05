@@ -53,6 +53,7 @@ import io.github.keanu365.studbud.main.AssignmentDetailsPage
 import io.github.keanu365.studbud.main.GroupDetailsPage
 import io.github.keanu365.studbud.main.Homepage
 import io.github.keanu365.studbud.main.ImageView
+import io.github.keanu365.studbud.main.Leaderboard
 import io.github.keanu365.studbud.main.SettingsPage
 import io.github.keanu365.studbud.main.Timer
 import io.github.keanu365.studbud.main.TimerDetails
@@ -150,7 +151,8 @@ fun NavRoot(
         Route.AssignmentDetailsPage,
         Route.AddAssignmentPage,
         Route.TimerDetailsPage,
-        Route.SettingsPage
+        Route.SettingsPage,
+        Route.Leaderboard
     )
     val showActionsKeys = listOf(
         Route.ThemeTest,
@@ -522,6 +524,13 @@ fun NavRoot(
                                 .fillMaxSize()
                                 .padding(15.dp)
                                 .padding(bottom = 20.dp)
+                        )
+                    }
+                }
+                Route.Leaderboard -> {
+                    NavEntry(key){
+                        Leaderboard(
+                            user = user ?: error("User is null")
                         )
                     }
                 }

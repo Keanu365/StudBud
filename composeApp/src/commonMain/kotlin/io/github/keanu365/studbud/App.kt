@@ -99,6 +99,7 @@ fun App(appPrefs: AppPreferences) {
                     subclass(Route.TimerDetailsPage::class, Route.TimerDetailsPage.serializer())
                     subclass(Route.SettingsPage::class, Route.SettingsPage.serializer())
                     subclass(Route.ImageViewPage::class, Route.ImageViewPage.serializer())
+                    subclass(Route.Leaderboard::class, Route.Leaderboard.serializer())
                 }
             }
         },
@@ -274,7 +275,7 @@ fun App(appPrefs: AppPreferences) {
                             if (showActions){
                                 IconButton(
                                     onClick = {
-                                        //TODO Leaderboard
+                                        backStack.add(Route.Leaderboard)
                                     }
                                 ){
                                     Icon(
