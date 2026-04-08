@@ -48,20 +48,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.keanu365.studbud.navigation.NavRoot
 import io.github.keanu365.studbud.navigation.Route
 import io.github.keanu365.studbud.theme.StudBudTheme
+import io.github.keanu365.studbud.viewmodels.MainViewModel
 import io.github.keanu365.studbud.viewmodels.SettingsViewModel
 import io.github.keanu365.studbud.viewmodels.Theme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
 import my.connectivity.kmp.data.model.NetworkStatus
 import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.painterResource
@@ -74,49 +70,24 @@ import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun App(appPrefs: AppPreferences) {
+fun App(
+    appPrefs: AppPreferences,
+    viewModel: MainViewModel = viewModel { MainViewModel(appPrefs) }
+) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val snackBarHostState = remember { SnackbarHostState() }
     val mainAppScope = rememberCoroutineScope()
 
-    val backStack = rememberNavBackStack(
-        configuration = SavedStateConfiguration{
-            serializersModule = SerializersModule{
-                polymorphic(NavKey::class){
-                    subclass(Route.SplashScreen::class, Route.SplashScreen.serializer())
-                    subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
-                    subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
-                    subclass(Route.SignInPage::class, Route.SignInPage.serializer())
-                    subclass(Route.Homepage::class, Route.Homepage.serializer())
-                    subclass(Route.AddGroupPage::class, Route.AddGroupPage.serializer())
-                    subclass(Route.GroupDetailsPage::class, Route.GroupDetailsPage.serializer())
-                    subclass(Route.AssignmentDetailsPage::class, Route.AssignmentDetailsPage.serializer())
-                    subclass(Route.SuccessPage::class, Route.SuccessPage.serializer())
-                    subclass(Route.AddAssignmentPage::class, Route.AddAssignmentPage.serializer())
-                    subclass(Route.TimerPage::class, Route.TimerPage.serializer())
-                    subclass(Route.TimerDetailsPage::class, Route.TimerDetailsPage.serializer())
-                    subclass(Route.SettingsPage::class, Route.SettingsPage.serializer())
-                    subclass(Route.ImageViewPage::class, Route.ImageViewPage.serializer())
-                    subclass(Route.Leaderboard::class, Route.Leaderboard.serializer())
-                }
-            }
-        },
-        Route.SplashScreen
-    )
+    val backStack = viewModel.rememberBackStack()
+    val currentRoute = backStack.last()
+    val showTopBar = !viewModel.hideTopBar.contains(currentRoute)
+    val showBackArrow = viewModel.showBackKeys.contains(currentRoute)
+    val showActions = viewModel.showActionsKeys.contains(currentRoute)
 
-    var showTopBar by remember { mutableStateOf(false) }
-    var showBackArrow by remember { mutableStateOf(false) }
-    var showActions by remember { mutableStateOf(false) }
-    val topBarHeight = remember {
-        if (getDeviceType() == "Phone") 100.dp
-        else 70.dp
-    }
-    val spacerHeight = remember {
-        if (getDeviceType() == "Phone") 60.dp
-        else 70.dp
-    }
+    val topBarHeight = if (getDeviceType() == "Phone") 100.dp else 70.dp
+    val spacerHeight = if (getDeviceType() == "Phone") 60.dp else 70.dp
 
     val isNetworkAvailable by rememberNetworkStatus()
     var networkText by remember {mutableStateOf("No Internet Connection")}
@@ -205,9 +176,9 @@ fun App(appPrefs: AppPreferences) {
                     }
                     if (getDeviceType() != "Phone") Spacer(Modifier.height(15.dp))
                     NavRoot(
-                        appPrefs = appPrefs,
-                        settingsViewModel = settingsViewModel,
+                        viewModel = viewModel,
                         backStack = backStack,
+                        settingsViewModel = settingsViewModel,
                         modifier = Modifier
                             .pointerInput(Unit) {
                                 detectTapGestures {
@@ -220,11 +191,7 @@ fun App(appPrefs: AppPreferences) {
                                 snackBarHostState.showSnackbar(message)
                             }
                         }
-                    ) { showBar, showBack, newShowActions ->
-                        showTopBar = showBar
-                        showBackArrow = showBack
-                        showActions = newShowActions
-                    }
+                    )
                 }
                 //Top app bar
                 AnimatedVisibility(
@@ -275,7 +242,10 @@ fun App(appPrefs: AppPreferences) {
                             if (showActions){
                                 IconButton(
                                     onClick = {
-                                        backStack.add(Route.Leaderboard)
+                                        if (isNetworkAvailable == NetworkStatus.Available) backStack.add(Route.Leaderboard)
+                                        else mainAppScope.launch{
+                                            snackBarHostState.showSnackbar("Please connect to the internet!")
+                                        }
                                     }
                                 ){
                                     Icon(

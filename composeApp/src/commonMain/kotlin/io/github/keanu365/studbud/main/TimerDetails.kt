@@ -127,7 +127,7 @@ fun TimerDetails(
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                     )
-                    assignments.forEach { assignment ->
+                    if (networkStatus == NetworkStatus.Available) assignments.forEach { assignment ->
                         DropdownMenuItem(
                             text = {Text(assignment.name)},
                             onClick = {

@@ -15,7 +15,8 @@ data class User(
     val avatar_url: String = "",
     val studs: Int = 0,
     val all_time_studs: Int = 0,
-    val groups: List<String>? = null
+    val groups: List<String>? = null,
+    val achievements: List<Int>? = null
 )
 @Serializable
 data class Group(
@@ -58,4 +59,14 @@ data class AutoUserAssignment(
     val period: Int = 25,
     val breaktime: Int = 5,
     val iterations: Int = 1
+)
+@Serializable
+data class Achievement(
+    val id: Int,
+    val name: String,
+    val description: String = "",
+    val requirement: String = "",
+    val secret: Boolean = false,
+    val num_awardees: Long = 0L,
+    val badge_url: String = ""
 )

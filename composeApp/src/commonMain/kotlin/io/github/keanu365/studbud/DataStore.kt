@@ -79,6 +79,13 @@ class AppPreferences(
             preferences[KEY_RAW_ASSIGNMENTS_DATA] = Json.encodeToString(assignments).also{ println(it) }
         }
     }
+    suspend fun clearRawUserData(){
+        dataStore.edit { preferences ->
+            preferences[KEY_RAW_USER_DATA] = ""
+            preferences[KEY_RAW_GROUPS_DATA] = ""
+            preferences[KEY_RAW_ASSIGNMENTS_DATA] = ""
+        }
+    }
 
     suspend fun setSettings(settings: Settings) {
         dataStore.edit { preferences ->

@@ -23,7 +23,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,17 +31,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.jan.supabase.postgrest.from
-import io.github.keanu365.studbud.AppPreferences
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.AutoUserAssignment
 import io.github.keanu365.studbud.Group
-import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.getDeviceType
-import io.github.keanu365.studbud.supabase
-import kotlinx.coroutines.flow.first
+import io.github.keanu365.studbud.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import my.connectivity.kmp.data.model.NetworkStatus
 import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.DrawableResource
@@ -56,13 +51,12 @@ import studbud.composeapp.generated.resources.icon_timer
 @Composable
 fun Homepage(
     onSignOut: () -> Unit,
-    appPrefs: AppPreferences,
+    viewModel: MainViewModel,
     showSnackBar: (String) -> Unit,
-    onUserLoaded: (User) -> Unit = {},
-    onAddGroup: (User) -> Unit,
+    onAddGroup: () -> Unit,
     onGroupClicked: (Group) -> Unit,
     onAssignmentClicked: (Assignment) -> Unit,
-    onAssignmentAdd: (User) -> Unit,
+    onAssignmentAdd: () -> Unit,
     onTimerStart: (AutoUserAssignment) -> Unit,
     onViewPhoto: () -> Unit = {},
     onEditPhoto: () -> Unit = {},
@@ -72,9 +66,9 @@ fun Homepage(
     val pagerState = rememberPagerState(pageCount = { Tabs.tabs.size })
     val currentTab = Tabs.tabs[pagerState.currentPage]
 
-    var user by remember { mutableStateOf<User?>(null) }
-    val groups = remember { mutableStateListOf<Group>() }
-    val assignments = remember {mutableStateListOf<Assignment>()}
+    val user by viewModel.user.collectAsStateWithLifecycle()
+    val groups by viewModel.groups.collectAsStateWithLifecycle()
+    val assignments by viewModel.assignments.collectAsStateWithLifecycle()
 
     var showGroups by rememberSaveable { mutableStateOf(false) }
     var showAssignments by rememberSaveable { mutableStateOf(false) }
@@ -105,62 +99,7 @@ fun Homepage(
         coroutineScope.launch {
             try {
                 isRefreshing = true
-                //User
-                user = supabase.from("profiles")
-                    .select {
-                        filter { eq("id", appPrefs.userId.first()) }
-                    }
-                    .decodeSingleOrNull<User>()
-                user?.let{onUserLoaded(it)}
-                //Groups
-                val currentGroups: List<Group>? = user?.let {
-                    val userGroups = it.groups
-                    val groupList = mutableListOf<Group>()
-                    userGroups?.forEach { groupId ->
-                        val group = supabase.from("groups")
-                            .select {
-                                filter {
-                                    eq("id", groupId)
-                                }
-                            }
-                            .decodeSingleOrNull<Group>()
-                        if (group != null) groupList.add(group)
-                    }
-                    groupList
-                }
-                groups.clear()
-                groups.addAll(currentGroups ?: emptyList())
-                //Assignments
-                val newAssignments = mutableListOf<Assignment>()
-                groups.forEach { group ->
-                    group.assignments.forEach { assignmentId ->
-                        val assignment = supabase.from("assignments")
-                            .select {
-                                filter {
-                                    eq("id", assignmentId)
-                                }
-                            }
-                            .decodeSingleOrNull<Assignment>()
-                        if (assignment != null) newAssignments.add(assignment)
-                    }
-                }
-                user?.let{
-                    supabase.from("assignments")
-                        .select{
-                            filter{
-                                eq("group_id", it.id)
-                            }
-                        }
-                        .decodeList<Assignment>()
-                        .forEach{ assignment ->
-                            newAssignments.add(assignment)
-                        }
-                }
-                assignments.clear()
-                assignments.addAll(newAssignments)
-                // And finally store it locally in case user is offline the next time round
-                appPrefs.saveRawUserData(user, groups, assignments)
-                println("All successful!")
+                viewModel.refreshUser()
             } catch (e: Exception) {
                 e.printStackTrace()
                 showSnackBar("Something went wrong with the refresh. Please try again later.")
@@ -178,13 +117,6 @@ fun Homepage(
         }
     }
     LaunchedEffect(networkStatus){
-        groups.clear()
-        assignments.clear()
-        try {
-            user = Json.decodeFromString(appPrefs.rawUserData.first())
-            groups.addAll(Json.decodeFromString(appPrefs.rawGroupsData.first()))
-            assignments.addAll(Json.decodeFromString(appPrefs.rawAssignmentsData.first()))
-        } catch (_: Exception) {}
         if (networkStatus == NetworkStatus.Available && !hasRefreshedThisSession && !isRefreshing) {
             refresh()
             hasRefreshedThisSession = true
@@ -249,7 +181,7 @@ fun Homepage(
                     )
                     Tabs.HOME -> Home(
                         onAddGroup = {
-                            tryAndCatch { onAddGroup(user!!) }
+                            tryAndCatch { onAddGroup() }
                         },
                         groups = groups,
                         assignments = assignments,
@@ -260,7 +192,7 @@ fun Homepage(
                         onGroupClicked = onGroupClicked,
                         onAssignmentClicked = onAssignmentClicked,
                         onAssignmentAdd = {
-                            tryAndCatch { onAssignmentAdd(user!!) }
+                            tryAndCatch { onAssignmentAdd() }
                         }
                     )
                     Tabs.PROFILE -> Profile(
@@ -268,8 +200,8 @@ fun Homepage(
                             tryAndCatch { onSignOut() }
                         },
                         user = user,
-                        onViewPhoto = onViewPhoto,
-                        onEditPhoto = onEditPhoto
+                        onViewPhoto = { tryAndCatch { onViewPhoto() } },
+                        onEditPhoto = { tryAndCatch { onEditPhoto() } }
                     )
                 }
                 Spacer(Modifier.height(60.dp)) //Buffer for buttons

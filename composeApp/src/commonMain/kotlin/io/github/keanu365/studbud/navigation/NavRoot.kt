@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -34,16 +34,12 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.storage.storage
-import io.github.keanu365.studbud.AppPreferences
-import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.AutoUserAssignment
-import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.SplashLength
 import io.github.keanu365.studbud.SplashScreen
 import io.github.keanu365.studbud.SuccessPage
 import io.github.keanu365.studbud.ThemeTest
 import io.github.keanu365.studbud.User
-import io.github.keanu365.studbud.UserAssignment
 import io.github.keanu365.studbud.account.SignInPage
 import io.github.keanu365.studbud.account.SignUpPage
 import io.github.keanu365.studbud.account.isEmailValid
@@ -58,10 +54,12 @@ import io.github.keanu365.studbud.main.SettingsPage
 import io.github.keanu365.studbud.main.Timer
 import io.github.keanu365.studbud.main.TimerDetails
 import io.github.keanu365.studbud.supabase
+import io.github.keanu365.studbud.viewmodels.MainViewModel
 import io.github.keanu365.studbud.viewmodels.SettingsViewModel
 import io.ktor.http.ContentType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.congrats
@@ -70,18 +68,19 @@ import kotlin.time.Clock
 
 @Composable
 fun NavRoot(
-    appPrefs: AppPreferences,
+    viewModel: MainViewModel,
     backStack: NavBackStack<NavKey>,
     modifier: Modifier = Modifier,
-    settingsViewModel: SettingsViewModel = viewModel { SettingsViewModel(appPrefs = appPrefs) },
+    settingsViewModel: SettingsViewModel = viewModel { SettingsViewModel(appPrefs = viewModel.appPrefs) },
     showSnackBar: (String) -> Unit,
-    changeTopBar: (Boolean, Boolean, Boolean) -> Unit = { _, _, _ -> } //showBar, showBack, showActions){}
 ){
+    val appPrefs = viewModel.appPrefs
+    
     val coroutineScope = rememberCoroutineScope()
-    var user by remember { mutableStateOf<User?>(null) }
-    var groupInFocus by remember { mutableStateOf<Group?>(null) }
-    var assignmentInFocus by remember { mutableStateOf<Assignment?>(null) }
-    var userAssignmentInFocus by remember { mutableStateOf<UserAssignment?>(null) }
+    val user by viewModel.user.collectAsStateWithLifecycle()
+    val groupInFocus by viewModel.groupInFocus.collectAsStateWithLifecycle()
+    val assignmentInFocus by viewModel.assignmentInFocus.collectAsStateWithLifecycle()
+    val userAssignmentInFocus by viewModel.userAssignmentInFocus.collectAsStateWithLifecycle()
 
     var sharedEmail by remember {mutableStateOf("")}
     var sharedUsername by remember {mutableStateOf("")}
@@ -89,11 +88,7 @@ fun NavRoot(
 
     var splashLength by remember {mutableStateOf(SplashLength.MEDIUM)}
     fun onSignIn(user: User, key: NavKey) = run {
-        coroutineScope.launch {
-            appPrefs.saveSignIn(user.id)
-            appPrefs.setFirstTimeUser(false)
-            //TODO change this implementation when you do onboarding
-        }
+        viewModel.signIn(user)
         sharedEmail = ""
         sharedUsername = ""
         sharedPassword = ""
@@ -103,38 +98,22 @@ fun NavRoot(
         backStack.remove(key)
     }
     fun onSignOut(key: NavKey) = run {
-        coroutineScope.launch {
-            supabase.auth.signOut()
-            appPrefs.signOut()
-        }
+        viewModel.signOut()
         splashLength = SplashLength.SHORT
         backStack.add(Route.SplashScreen)
         backStack.remove(key)
     }
     fun startTimer(assignment: AutoUserAssignment){
-        coroutineScope.launch {
-            try {
-                user?.let{user ->
-                    userAssignmentInFocus = if (assignment.assignment_id.isBlank())
-                        UserAssignment(
-                            user_id = user.id,
-                            period = assignment.period,
-                            breaktime = assignment.breaktime,
-                            iterations = assignment.iterations
-                        )
-                    else supabase.from("user_assignments")
-                        .insert(assignment){select()}
-                        .decodeSingle<UserAssignment>()
-                } ?: showSnackBar("Timer cannot be started as user is null.")
-                backStack.add(Route.TimerPage)
-                for (i in backStack.size-2 downTo 0){
-                    if (backStack[i] != Route.Homepage) backStack.removeAt(i)
-                }
-            } catch (_: HttpRequestException) {
-                showSnackBar("Please connect to the Internet!")
-            } catch (_: NullPointerException) {
-                showSnackBar("Error fetching user data. Please try again later.")
+        try {
+            viewModel.prepareTimer(assignment)
+            backStack.add(Route.TimerPage)
+            for (i in backStack.size-2 downTo 0){
+                if (backStack[i] != Route.Homepage) backStack.removeAt(i)
             }
+        } catch (_: HttpRequestException) {
+            showSnackBar("Please connect to the Internet!")
+        } catch (_: NullPointerException) {
+            showSnackBar("Error fetching user data. Please try again later.")
         }
     }
 
@@ -143,36 +122,6 @@ fun NavRoot(
     var successImage by remember {mutableStateOf<@Composable () -> Unit>({})}
     var successContent by remember {mutableStateOf<@Composable () -> Unit>({})}
     var timerEnded by remember {mutableStateOf(false)}
-
-    //Indicate here if you want back arrow / actions / top bar
-    val showBackKeys = listOf(
-        Route.AddGroupPage,
-        Route.GroupDetailsPage,
-        Route.AssignmentDetailsPage,
-        Route.AddAssignmentPage,
-        Route.TimerDetailsPage,
-        Route.SettingsPage,
-        Route.Leaderboard
-    )
-    val showActionsKeys = listOf(
-        Route.ThemeTest,
-        Route.Homepage,
-        Route.AddGroupPage,
-        Route.GroupDetailsPage,
-        Route.AssignmentDetailsPage,
-        Route.TimerDetailsPage
-    )
-    val hideTopBar = listOf(
-        Route.SplashScreen,
-        Route.ImageViewPage
-    )
-    LaunchedEffect(backStack.last()){
-        changeTopBar(
-            !hideTopBar.contains(backStack.last()),
-            showBackKeys.contains(backStack.last()),
-            showActionsKeys.contains(backStack.last())
-        )
-    }
 
     var showGallery by remember { mutableStateOf(false) }
     if (showGallery) {
@@ -314,23 +263,20 @@ fun NavRoot(
                     NavEntry(key){
                         Homepage(
                             onSignOut = { onSignOut(key) },
-                            appPrefs = appPrefs,
-                            showSnackBar = {showSnackBar(it)},
-                            onUserLoaded = {user = it},
+                            viewModel = viewModel,
+                            showSnackBar = {msg -> showSnackBar(msg)},
                             onAddGroup = {
-                                user = it
                                 backStack.add(Route.AddGroupPage)
                             },
-                            onGroupClicked = {
-                                groupInFocus = it
+                            onGroupClicked = { group ->
+                                viewModel.setGroupInFocus(group)
                                 backStack.add(Route.GroupDetailsPage)
                             },
-                            onAssignmentClicked = {
-                                assignmentInFocus = it
+                            onAssignmentClicked = { assignment ->
+                                viewModel.setAssignmentInFocus(assignment)
                                 backStack.add(Route.AssignmentDetailsPage)
                             },
                             onAssignmentAdd = {
-                                user = it
                                 backStack.add(Route.AddAssignmentPage)
                             },
                             onTimerStart = { assignment ->
@@ -369,8 +315,8 @@ fun NavRoot(
                     NavEntry(key) {
                         GroupDetailsPage(
                             group = groupInFocus ?: error("Group is null"),
-                            onAssignmentClicked = {
-                                assignmentInFocus = it
+                            onAssignmentClicked = { assignment ->
+                                viewModel.setAssignmentInFocus(assignment)
                                 //Clean up and remove previous assignment details
                                 backStack.remove(Route.AssignmentDetailsPage)
                                 backStack.add(Route.AssignmentDetailsPage)
@@ -385,14 +331,14 @@ fun NavRoot(
                     NavEntry(key) {
                         AssignmentDetailsPage(
                             assignment = assignmentInFocus ?: error("Assignment is null"),
-                            onGroupClicked = {
-                                groupInFocus = it
+                            onGroupClicked = { group ->
+                                viewModel.setGroupInFocus(group)
                                 //Clean up and remove previous group details
                                 backStack.remove(Route.GroupDetailsPage)
                                 backStack.add(Route.GroupDetailsPage)
                             },
                             onDo = { assignment ->
-                                assignmentInFocus = assignment
+                                viewModel.setAssignmentInFocus(assignment)
                                 backStack.add(Route.TimerDetailsPage)
                             }
                         )
@@ -455,40 +401,8 @@ fun NavRoot(
                                     backStack.remove(key)
                                     backStack.add(Route.SplashScreen)
                                     backStack.remove(Route.Homepage)
-                                    coroutineScope.launch {
-                                        try {
-                                            if (userAssignment.assignment_id.isNotEmpty()) {
-                                                supabase.from("user_assignments")
-                                                    .update(
-                                                        {
-                                                            set("completed", true)
-                                                        }
-                                                    ) {
-                                                        filter {
-                                                            eq("assignment_id", userAssignment.assignment_id)
-                                                            eq("user_id", userAssignment.user_id)
-                                                        }
-                                                    }
-                                            }
-                                            user = supabase.from("profiles")
-                                                .update(
-                                                    {
-                                                        set("studs", user!!.studs + studsToAdd)
-                                                        set("all_time_studs", user!!.all_time_studs + studsToAdd)
-                                                    }
-                                                ){
-                                                    filter {
-                                                        eq("id", user!!.id)
-                                                    }
-                                                    select()
-                                                }
-                                                .decodeSingle<User>()
-                                        } catch (_: HttpRequestException) {
-                                            showSnackBar("Failed to save studs to database. Studs will be added the next time you're connected to the internet.")
-                                        } catch (_: NullPointerException) {
-                                            showSnackBar("User could not be found. Studs will be added the next time you're connected to the internet.")
-                                        }
-                                    }
+                                    try { viewModel.endTimer(userAssignment, studsToAdd) }
+                                    catch(e: Exception) { showSnackBar(e.message?: "An error occurred.") }
                                 }
                             }
                         )

@@ -46,6 +46,7 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import io.github.keanu365.studbud.ErrorButton
 import io.github.keanu365.studbud.User
+import io.github.keanu365.studbud.getDeviceType
 import io.github.keanu365.studbud.theme.errorButtonColors
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
@@ -117,7 +118,7 @@ fun Profile(
             Box{
                 user?.let{ user ->
                     AsyncImage(
-                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                        model = if (getDeviceType() != "Desktop") user.avatar_url else ImageRequest.Builder(LocalPlatformContext.current)
                             .data(user.avatar_url)
                             .memoryCachePolicy(CachePolicy.DISABLED) // Forces it to ignore RAM cache
                             .diskCachePolicy(CachePolicy.DISABLED)   // Forces it to ignore Disk cache
