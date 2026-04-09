@@ -90,7 +90,7 @@ compose.desktop {
         mainClass = "io.github.keanu365.studbud.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Deb)
             packageName = "io.github.keanu365.studbud"
             packageVersion = "1.0.0"
             windows {
@@ -101,6 +101,16 @@ compose.desktop {
             }
             linux {
                 iconFile.set(project.file("src/jvmMain/resources/logo/studbud-1024.png"))
+            }
+            modules(
+                "java.instrument",
+                "java.management",
+                "java.prefs",
+                "jdk.unsupported",
+                "jdk.crypto.ec"
+            )
+            buildTypes.release.proguard {
+                isEnabled.set(false) // Disable to test if this is the cause
             }
         }
     }

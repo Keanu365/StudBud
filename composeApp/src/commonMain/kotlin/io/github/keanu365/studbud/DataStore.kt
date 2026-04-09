@@ -33,6 +33,7 @@ class AppPreferences(
         private val KEY_RAW_USER_DATA = stringPreferencesKey("raw_user_data")
         private val KEY_RAW_GROUPS_DATA = stringPreferencesKey("raw_groups_data")
         private val KEY_RAW_ASSIGNMENTS_DATA = stringPreferencesKey("raw_assignments_data")
+        private val KEY_RAW_ALL_ACHIEVEMENTS_DATA = stringPreferencesKey("raw_achievements_data")
         private val KEY_SETTINGS = stringPreferencesKey("settings")
     }
 
@@ -42,6 +43,7 @@ class AppPreferences(
     val rawUserData: Flow<String> = dataStore.data.map { it[KEY_RAW_USER_DATA] ?: "" }
     val rawGroupsData: Flow<String> = dataStore.data.map { it[KEY_RAW_GROUPS_DATA] ?: "" }
     val rawAssignmentsData: Flow<String> = dataStore.data.map { it[KEY_RAW_ASSIGNMENTS_DATA] ?: "" }
+    val rawAllAchievementsData: Flow<String> = dataStore.data.map { it[KEY_RAW_ALL_ACHIEVEMENTS_DATA] ?: "" }
     val settings: Flow<String> = dataStore.data.map { it[KEY_SETTINGS] ?: "" }
 
 
@@ -53,12 +55,10 @@ class AppPreferences(
     }
     suspend fun signOut() {
         supabase.auth.signOut(scope = SignOutScope.LOCAL)
+        clearRawUserData()
         dataStore.edit { preferences ->
             preferences[KEY_USER_ID] = ""
             preferences[KEY_SIGNED_IN] = false
-            preferences[KEY_RAW_USER_DATA] = ""
-            preferences[KEY_RAW_GROUPS_DATA] = ""
-            preferences[KEY_RAW_ASSIGNMENTS_DATA] = ""
         }
     }
 
@@ -71,12 +71,14 @@ class AppPreferences(
     suspend fun saveRawUserData(
         user: User?,
         groups: List<Group>,
-        assignments: List<Assignment>
+        assignments: List<Assignment>,
+        allAchievements: List<Achievement>
     ){
         dataStore.edit { preferences ->
             preferences[KEY_RAW_USER_DATA] = Json.encodeToString(user).also { println(it) }
             preferences[KEY_RAW_GROUPS_DATA] = Json.encodeToString(groups).also{ println(it) }
             preferences[KEY_RAW_ASSIGNMENTS_DATA] = Json.encodeToString(assignments).also{ println(it) }
+            preferences[KEY_RAW_ALL_ACHIEVEMENTS_DATA] = Json.encodeToString(allAchievements).also{ println(it) }
         }
     }
     suspend fun clearRawUserData(){
@@ -84,6 +86,7 @@ class AppPreferences(
             preferences[KEY_RAW_USER_DATA] = ""
             preferences[KEY_RAW_GROUPS_DATA] = ""
             preferences[KEY_RAW_ASSIGNMENTS_DATA] = ""
+            preferences[KEY_RAW_ALL_ACHIEVEMENTS_DATA] = ""
         }
     }
 

@@ -1,15 +1,18 @@
 package io.github.keanu365.studbud.main
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,6 +26,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -30,11 +34,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import io.github.keanu365.studbud.Achievement
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.AutoUserAssignment
 import io.github.keanu365.studbud.Group
+import io.github.keanu365.studbud.TertiaryButton
+import io.github.keanu365.studbud.TitleText
 import io.github.keanu365.studbud.getDeviceType
 import io.github.keanu365.studbud.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
@@ -69,6 +78,7 @@ fun Homepage(
     val user by viewModel.user.collectAsStateWithLifecycle()
     val groups by viewModel.groups.collectAsStateWithLifecycle()
     val assignments by viewModel.assignments.collectAsStateWithLifecycle()
+    val newAchievements = remember { mutableStateListOf<Achievement>() }
 
     var showGroups by rememberSaveable { mutableStateOf(false) }
     var showAssignments by rememberSaveable { mutableStateOf(false) }
@@ -99,7 +109,8 @@ fun Homepage(
         coroutineScope.launch {
             try {
                 isRefreshing = true
-                viewModel.refreshUser()
+                newAchievements.clear() //Just in case
+                newAchievements.addAll(viewModel.refreshUser())
             } catch (e: Exception) {
                 e.printStackTrace()
                 showSnackBar("Something went wrong with the refresh. Please try again later.")
@@ -121,6 +132,42 @@ fun Homepage(
             refresh()
             hasRefreshedThisSession = true
         }
+    }
+
+    newAchievements.forEach { newAchievement ->
+        AlertDialog(
+            onDismissRequest = {
+                newAchievements.remove(newAchievement)
+            },
+            confirmButton = {
+                TertiaryButton(
+                    onClick = {
+                        newAchievements.remove(newAchievement)
+                    }
+                ){Text("OK")}
+            },
+            title = { TitleText("Achievement Earned!") },
+            text = {
+                Column {
+                    AsyncImage(
+                        model = newAchievement.badge_url,
+                        // Note: The image does not load if dialogs are stacked.
+                        // TODO fix image loading
+                        contentDescription = null
+                    )
+                    Text(
+                        text = newAchievement.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth()
+                    )
+                    Text(
+                        text = "Go to the Achievements tab to view more details!"
+                    )
+                }
+            }
+        )
     }
 
     Scaffold(

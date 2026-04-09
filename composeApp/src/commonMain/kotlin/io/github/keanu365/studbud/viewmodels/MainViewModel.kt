@@ -9,6 +9,7 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.postgrest.from
+import io.github.keanu365.studbud.Achievement
 import io.github.keanu365.studbud.AppPreferences
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.AutoUserAssignment
@@ -61,6 +62,8 @@ class MainViewModel(
     val groups = _groups.asStateFlow()
     private val _assignments = MutableStateFlow<List<Assignment>>(emptyList())
     val assignments = _assignments.asStateFlow()
+    private val _allAchievements = MutableStateFlow<List<Achievement>>(emptyList())
+    val allAchievements = _allAchievements.asStateFlow()
 
     fun signIn(newUser: User){
         viewModelScope.launch {
@@ -76,25 +79,30 @@ class MainViewModel(
             _user.value = null
         }
     }
-    suspend fun refreshUser(){
+    suspend fun refreshUser(): List<Achievement> {
         try {
             val user = supabase.from("profiles")
                 .select {
-                    filter { eq("id", appPrefs.userId.first()) }
+                    filter {
+                        eq(
+                            "id",
+                        supabase.auth.currentUserOrNull()?.id ?: appPrefs.userId.first()
+                        )
+                    }
                 }
                 .decodeSingle<User>()
-            setUser(user)
+            return setUser(user)
         } catch (_: NullPointerException) {
-            println("Could not find user. Please try again.")
+            println("Error loading user data. Please try again.")
         } catch (_: HttpRequestException){
-            println("Could not load user. Please ensure you are connected to the Internet.")
+            println("Error loading data. Please ensure you are connected to the Internet.")
         } catch (e: Exception) {
             e.printStackTrace()
             println("Something went wrong. Please try again.")
         }
+        return emptyList()
     }
-    private suspend fun setUser(newUser: User){
-        _user.value = newUser
+    private suspend fun setUser(newUser: User): List<Achievement> {
         //Groups
         val userGroups = newUser.groups
         val newGroups = mutableListOf<Group>()
@@ -136,7 +144,55 @@ class MainViewModel(
                 newAssignments.add(assignment)
             }
         _assignments.emit(newAssignments)
-        appPrefs.saveRawUserData(newUser, newGroups, newAssignments)
+        //Check for new achievements
+        val allAchievements = supabase.from("achievements")
+            .select()
+            .decodeList<Achievement>()
+        _allAchievements.emit(allAchievements)
+        val newAchievements = mutableListOf<Achievement>()
+        newUser.achievements?.forEach { achId ->
+            val isNew = _user.value?.achievements?.contains(achId) == false
+            if (isNew) {
+                allAchievements.find { it.id == achId }?.let {
+                    newAchievements.add(it)
+                }
+            }
+        }
+        //Set user last to comply with achievements logic
+        _user.value = newUser
+        //And then save everything to the device
+        appPrefs.saveRawUserData(newUser, newGroups, newAssignments, allAchievements)
+        println("New achievements: $newAchievements")
+        return newAchievements
+    }
+
+    suspend fun awardAchievement(id: Int){
+        val achievement = supabase.from("achievements")
+            .select {
+                filter {
+                    eq("id", id)
+                }
+            }
+            .decodeSingle<Achievement>()
+        _user.value = supabase.from("profiles")
+            .update (
+                { set("achievements", _user.value!!.achievements?.plus(id) ?: listOf(id)) }
+            ) {
+                filter {
+                    eq("id", _user.value!!.id)
+                }
+                select()
+            }
+            .decodeSingle<User>()
+        supabase.from("achievements")
+            .update(
+                { set("num_awardees", achievement.num_awardees + 1) }
+            ) {
+                filter {
+                    eq("id", id)
+                }
+            }
+        refreshUser()
     }
 
     //"In Focus" stuff
@@ -231,6 +287,7 @@ class MainViewModel(
                 _user.value = Json.decodeFromString(appPrefs.rawUserData.first())
                 _groups.value = Json.decodeFromString(appPrefs.rawGroupsData.first())
                 _assignments.value = Json.decodeFromString(appPrefs.rawAssignmentsData.first())
+                _allAchievements.value = Json.decodeFromString(appPrefs.rawAllAchievementsData.first())
             } catch (e: Exception) {
                 e.printStackTrace()
                 appPrefs.clearRawUserData()
