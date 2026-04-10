@@ -111,7 +111,8 @@ fun AddGroupPage(
                     id = groupCode,
                     name = name,
                     description = description,
-                    members = members.toList()
+                    members = members.toList(),
+                    owner = user.id
                 )
                 supabase.from("groups").insert(group){
                     filter {

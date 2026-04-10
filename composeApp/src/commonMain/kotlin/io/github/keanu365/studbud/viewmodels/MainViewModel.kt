@@ -19,6 +19,7 @@ import io.github.keanu365.studbud.UserAssignment
 import io.github.keanu365.studbud.navigation.Route
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -49,6 +50,7 @@ class MainViewModel(
                     subclass(Route.SettingsPage::class, Route.SettingsPage.serializer())
                     subclass(Route.ImageViewPage::class, Route.ImageViewPage.serializer())
                     subclass(Route.Leaderboard::class, Route.Leaderboard.serializer())
+                    subclass(Route.AchievementsPage::class, Route.AchievementsPage.serializer())
                 }
             }
         },
@@ -69,7 +71,7 @@ class MainViewModel(
         viewModelScope.launch {
             appPrefs.saveSignIn(newUser.id)
             appPrefs.setFirstTimeUser(false)
-            setUser(newUser)
+            awardAchievement(0, 1) // Welcome achievement
         }
     }
     fun signOut(){
@@ -79,7 +81,14 @@ class MainViewModel(
             _user.value = null
         }
     }
+
+    private var isRefreshing = false
+    private val _newAchievementEvents = kotlinx.coroutines.flow.MutableSharedFlow<List<Achievement>>()
+    val newAchievementEvents = _newAchievementEvents.asSharedFlow() // Use asSharedFlow if preferred// 2. Fix refreshUser to use 'finally' so the flag always resets
+
     suspend fun refreshUser(): List<Achievement> {
+        if (isRefreshing) return emptyList()
+        isRefreshing = true
         try {
             val user = supabase.from("profiles")
                 .select {
@@ -91,7 +100,15 @@ class MainViewModel(
                     }
                 }
                 .decodeSingle<User>()
-            return setUser(user)
+
+            val newOnes = setUser(user)
+
+            // 3. BROADCAST the new achievements!
+            if (newOnes.isNotEmpty()) {
+                _newAchievementEvents.emit(newOnes)
+            }
+
+            return newOnes
         } catch (_: NullPointerException) {
             println("Error loading user data. Please try again.")
         } catch (_: HttpRequestException){
@@ -99,6 +116,8 @@ class MainViewModel(
         } catch (e: Exception) {
             e.printStackTrace()
             println("Something went wrong. Please try again.")
+        } finally {
+            isRefreshing = false
         }
         return emptyList()
     }
@@ -145,13 +164,22 @@ class MainViewModel(
             }
         _assignments.emit(newAssignments)
         //Check for new achievements
+        val rawData = appPrefs.rawUserData.first()
+        val oldAchievements = _user.value?.achievements
+            ?: if (rawData.isNotEmpty() && rawData != "null") {
+                try {
+                    Json.decodeFromString<User?>(rawData)?.achievements
+                } catch (_: Exception) { null }
+            } else {
+                null
+            } ?: emptyList()
         val allAchievements = supabase.from("achievements")
             .select()
             .decodeList<Achievement>()
         _allAchievements.emit(allAchievements)
         val newAchievements = mutableListOf<Achievement>()
         newUser.achievements?.forEach { achId ->
-            val isNew = _user.value?.achievements?.contains(achId) == false
+            val isNew = !oldAchievements.contains(achId)
             if (isNew) {
                 allAchievements.find { it.id == achId }?.let {
                     newAchievements.add(it)
@@ -166,33 +194,26 @@ class MainViewModel(
         return newAchievements
     }
 
-    suspend fun awardAchievement(id: Int){
-        val achievement = supabase.from("achievements")
-            .select {
-                filter {
-                    eq("id", id)
+    suspend fun awardAchievement(vararg ids: Int, refresh: Boolean = true){
+        for (id in ids) {
+            if (_user.value?.achievements?.contains(id) ?: true) continue
+            supabase.from("achievements")
+                .select {
+                    filter {
+                        eq("id", id)
+                    }
                 }
-            }
-            .decodeSingle<Achievement>()
-        _user.value = supabase.from("profiles")
-            .update (
-                { set("achievements", _user.value!!.achievements?.plus(id) ?: listOf(id)) }
-            ) {
-                filter {
-                    eq("id", _user.value!!.id)
+                .decodeSingle<Achievement>()
+            supabase.from("profiles")
+                .update (
+                    { set("achievements", _user.value!!.achievements?.plus(id) ?: listOf(id)) }
+                ) {
+                    filter {
+                        eq("id", _user.value!!.id)
+                    }
                 }
-                select()
-            }
-            .decodeSingle<User>()
-        supabase.from("achievements")
-            .update(
-                { set("num_awardees", achievement.num_awardees + 1) }
-            ) {
-                filter {
-                    eq("id", id)
-                }
-            }
-        refreshUser()
+        }
+        if (refresh) refreshUser()
     }
 
     //"In Focus" stuff
@@ -250,6 +271,7 @@ class MainViewModel(
                         select()
                     }
                     .decodeSingle<User>()
+                awardAchievement(4, refresh = false)
             } catch (_: HttpRequestException) {
                 println("Failed to save studs to database. Studs will be added the next time you're connected to the internet.")
             } catch (_: NullPointerException) {
@@ -266,7 +288,8 @@ class MainViewModel(
         Route.AddAssignmentPage,
         Route.TimerDetailsPage,
         Route.SettingsPage,
-        Route.Leaderboard
+        Route.Leaderboard,
+        Route.AchievementsPage
     )
     val showActionsKeys = listOf(
         Route.ThemeTest,
@@ -284,13 +307,18 @@ class MainViewModel(
     init {
         viewModelScope.launch {
             try {
-                _user.value = Json.decodeFromString(appPrefs.rawUserData.first())
-                _groups.value = Json.decodeFromString(appPrefs.rawGroupsData.first())
-                _assignments.value = Json.decodeFromString(appPrefs.rawAssignmentsData.first())
-                _allAchievements.value = Json.decodeFromString(appPrefs.rawAllAchievementsData.first())
-            } catch (e: Exception) {
-                e.printStackTrace()
-                appPrefs.clearRawUserData()
+                val userRaw = appPrefs.rawUserData.first()
+                if (userRaw.isNotEmpty() && userRaw != "null") {
+                    _user.value = Json.decodeFromString(userRaw)
+                    _groups.value = Json.decodeFromString(appPrefs.rawGroupsData.first())
+                    _assignments.value = Json.decodeFromString(appPrefs.rawAssignmentsData.first())
+                    _allAchievements.value = Json.decodeFromString(appPrefs.rawAllAchievementsData.first())
+                } else {
+                    // Only refresh if we actually have NO data
+                    refreshUser()
+                }
+            } catch (_: Exception) {
+                // Data was corrupt, refresh once
                 refreshUser()
             }
         }

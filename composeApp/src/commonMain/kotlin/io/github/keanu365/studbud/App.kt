@@ -62,6 +62,7 @@ import my.connectivity.kmp.data.model.NetworkStatus
 import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
+import studbud.composeapp.generated.resources.icon_ach
 import studbud.composeapp.generated.resources.icon_arrow_back
 import studbud.composeapp.generated.resources.icon_leaderboard
 import studbud.composeapp.generated.resources.icon_settings
@@ -240,6 +241,16 @@ fun App(
                         },
                         actions = {
                             if (showActions){
+                                IconButton(
+                                    onClick = {
+                                        backStack.add(Route.AchievementsPage)
+                                    }
+                                ){
+                                    Icon(
+                                        painter = painterResource(Res.drawable.icon_ach),
+                                        contentDescription = "Settings"
+                                    )
+                                }
                                 IconButton(
                                     onClick = {
                                         if (isNetworkAvailable == NetworkStatus.Available) backStack.add(Route.Leaderboard)

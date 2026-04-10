@@ -43,6 +43,7 @@ import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.account.SignInPage
 import io.github.keanu365.studbud.account.SignUpPage
 import io.github.keanu365.studbud.account.isEmailValid
+import io.github.keanu365.studbud.main.AchievementsPage
 import io.github.keanu365.studbud.main.AddAssignmentPage
 import io.github.keanu365.studbud.main.AddGroupPage
 import io.github.keanu365.studbud.main.AssignmentDetailsPage
@@ -59,7 +60,6 @@ import io.github.keanu365.studbud.viewmodels.SettingsViewModel
 import io.ktor.http.ContentType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.congrats
@@ -159,6 +159,7 @@ fun NavRoot(
                         }
 
                         showSnackBar("Profile photo updated! Refresh to view.")
+                        viewModel.awardAchievement(5)
 
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -295,7 +296,7 @@ fun NavRoot(
                     NavEntry(key) {
                         AddGroupPage(
                             user = user ?: error("User is null"),
-                            onJoin = {
+                            onJoin = { group ->
                                 successTitle = "Group joined/created successfully!"
                                 successImage = {
                                     Image(
@@ -303,9 +304,13 @@ fun NavRoot(
                                         contentDescription = null,
                                     )
                                 }
-                                successContent = {GroupDetailsPage(it, modifier = Modifier)}
+                                successContent = {GroupDetailsPage(group, modifier = Modifier)}
                                 backStack.remove(key)
                                 backStack.add(Route.SuccessPage)
+                                coroutineScope.launch {
+                                    if (group.owner == user?.id) viewModel.awardAchievement(2)
+                                    else viewModel.awardAchievement(3)
+                                }
                             },
                             showSnackBar = {showSnackBar(it)}
                         )
@@ -466,6 +471,14 @@ fun NavRoot(
                             onEdit = {
                                 showGallery = true
                             }
+                        )
+                    }
+                }
+                Route.AchievementsPage -> {
+                    NavEntry(key){
+                        AchievementsPage(
+                            allAchievements = viewModel.allAchievements.value,
+                            userAchievements = user?.achievements ?: error("User is null")
                         )
                     }
                 }

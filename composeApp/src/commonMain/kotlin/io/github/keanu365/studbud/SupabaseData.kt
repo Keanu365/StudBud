@@ -24,6 +24,7 @@ data class Group(
     val name: String,
     val description: String = "",
     val members: List<String> = emptyList(),
+    val owner: String = "",
     val assignments: List<String> = emptyList()
 )
 @Serializable
@@ -67,6 +68,5 @@ data class Achievement(
     val description: String = "",
     val requirement: String = "",
     val secret: Boolean = false,
-    val num_awardees: Long = 0L,
     val badge_url: String = ""
 )

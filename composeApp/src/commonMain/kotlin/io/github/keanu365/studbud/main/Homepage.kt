@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import io.github.keanu365.studbud.Achievement
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.AutoUserAssignment
@@ -53,6 +52,7 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_account
+import studbud.composeapp.generated.resources.icon_ach
 import studbud.composeapp.generated.resources.icon_home
 import studbud.composeapp.generated.resources.icon_refresh
 import studbud.composeapp.generated.resources.icon_timer
@@ -78,7 +78,15 @@ fun Homepage(
     val user by viewModel.user.collectAsStateWithLifecycle()
     val groups by viewModel.groups.collectAsStateWithLifecycle()
     val assignments by viewModel.assignments.collectAsStateWithLifecycle()
+
     val newAchievements = remember { mutableStateListOf<Achievement>() }
+
+    // LISTEN for the event from the ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.newAchievementEvents.collect { achievements ->
+            newAchievements.addAll(achievements)
+        }
+    }
 
     var showGroups by rememberSaveable { mutableStateOf(false) }
     var showAssignments by rememberSaveable { mutableStateOf(false) }
@@ -109,8 +117,7 @@ fun Homepage(
         coroutineScope.launch {
             try {
                 isRefreshing = true
-                newAchievements.clear() //Just in case
-                newAchievements.addAll(viewModel.refreshUser())
+                viewModel.refreshUser()
             } catch (e: Exception) {
                 e.printStackTrace()
                 showSnackBar("Something went wrong with the refresh. Please try again later.")
@@ -149,11 +156,10 @@ fun Homepage(
             title = { TitleText("Achievement Earned!") },
             text = {
                 Column {
-                    AsyncImage(
-                        model = newAchievement.badge_url,
-                        // Note: The image does not load if dialogs are stacked.
-                        // TODO fix image loading
-                        contentDescription = null
+                    Icon(
+                        painter = painterResource(Res.drawable.icon_ach),
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp).align(Alignment.CenterHorizontally)
                     )
                     Text(
                         text = newAchievement.name,

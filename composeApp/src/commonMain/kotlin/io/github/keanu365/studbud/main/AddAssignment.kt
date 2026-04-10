@@ -60,7 +60,7 @@ fun AddAssignmentPage(
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
 
-    val groups = remember { mutableStateListOf(Group(user.id, "Personal")) }
+    val groups = remember { mutableStateListOf(Group(user.id, "Personal", owner = user.id)) }
     var selectedGroup by remember {mutableStateOf(startingGroup ?: groups.first())}
     var isGroupExpanded by remember {mutableStateOf(false)}
     LaunchedEffect(Unit){
