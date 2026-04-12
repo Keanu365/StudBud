@@ -16,7 +16,7 @@ class LeaderboardViewModel(
     private val _groups = MutableStateFlow(emptyList<Group>())
     val groups = _groups.asStateFlow()
 
-    private val _selectedGroup = MutableStateFlow(Group("this", "will be discarded"))
+    private val _selectedGroup = MutableStateFlow(Group("to be discarded", "Loading..."))
     val selectedGroup = _selectedGroup.asStateFlow()
 
     private val _groupMembers = MutableStateFlow(emptyList<User>())
@@ -38,17 +38,22 @@ class LeaderboardViewModel(
     }
 
     fun setGroup(group: Group) = viewModelScope.launch {
-        _selectedGroup.value = group
-        _groupMembers.value = emptyList()
-        group.members.forEach { userId ->
-            _groupMembers.value += supabase.from("profiles")
-                .select {
-                    filter {
-                        eq("id", userId)
+        try {
+            _selectedGroup.value = group
+            _groupMembers.value = emptyList()
+            val newGroupMembers = mutableListOf<User>()
+            group.members.forEach { userId ->
+                newGroupMembers += supabase.from("profiles")
+                    .select {
+                        filter {
+                            eq("id", userId)
+                        }
                     }
-                }
-                .decodeSingle<User>()
+                    .decodeSingle<User>()
+            }
+            _groupMembers.value = newGroupMembers.sortedByDescending { it.all_time_studs }
+        } catch (_: Exception) {
+            println("Something went wrong while loading group members. Check internet connection.")
         }
-        _groupMembers.value = _groupMembers.value.sortedByDescending { it.all_time_studs }
     }
 }

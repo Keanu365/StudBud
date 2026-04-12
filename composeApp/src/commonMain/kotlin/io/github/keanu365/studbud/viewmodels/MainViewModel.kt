@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import kotlin.math.max
 
 class MainViewModel(
     val appPrefs: AppPreferences
@@ -71,7 +72,7 @@ class MainViewModel(
         viewModelScope.launch {
             appPrefs.saveSignIn(newUser.id)
             appPrefs.setFirstTimeUser(false)
-            awardAchievement(0, 1) // Welcome achievement
+            awardAchievement(0, 1, user = newUser) // Welcome achievement
         }
     }
     fun signOut(){
@@ -122,6 +123,29 @@ class MainViewModel(
         return emptyList()
     }
     private suspend fun setUser(newUser: User): List<Achievement> {
+        var newUser = newUser
+        // Add cached studs if it is the same user
+        _user.value?.let{
+            if (newUser.id == it.id && it.studs != newUser.studs){
+                try {
+                    newUser = supabase.from("profiles")
+                        .update (
+                            {
+                                set("studs", max(it.studs, newUser.studs))
+                                set("all_time_studs", max(it.studs, newUser.studs))
+                            }
+                        ){
+                            filter {
+                                eq("id", newUser.id)
+                            }
+                            select()
+                        }
+                        .decodeSingle()
+                } catch (_: Exception) {
+                    println("Studs update failed. Skipped.")
+                }
+            }
+        }
         //Groups
         val userGroups = newUser.groups
         val newGroups = mutableListOf<Group>()
@@ -194,9 +218,13 @@ class MainViewModel(
         return newAchievements
     }
 
-    suspend fun awardAchievement(vararg ids: Int, refresh: Boolean = true){
+    suspend fun awardAchievement(
+        vararg ids: Int,
+        user: User? = _user.value,
+        refresh: Boolean = true
+    ){
         for (id in ids) {
-            if (_user.value?.achievements?.contains(id) ?: true) continue
+            if (user?.achievements?.contains(id) ?: true) continue
             supabase.from("achievements")
                 .select {
                     filter {
@@ -206,7 +234,7 @@ class MainViewModel(
                 .decodeSingle<Achievement>()
             supabase.from("profiles")
                 .update (
-                    { set("achievements", _user.value!!.achievements?.plus(id) ?: listOf(id)) }
+                    { set("achievements", user.achievements.plus(id)) }
                 ) {
                     filter {
                         eq("id", _user.value!!.id)
@@ -272,10 +300,13 @@ class MainViewModel(
                     }
                     .decodeSingle<User>()
                 awardAchievement(4, refresh = false)
-            } catch (_: HttpRequestException) {
+            } catch (e: Exception) {
+                e.printStackTrace()
                 println("Failed to save studs to database. Studs will be added the next time you're connected to the internet.")
-            } catch (_: NullPointerException) {
-                println("User could not be found. Studs will be added the next time you're connected to the internet.")
+                _user.value = _user.value?.copy(
+                    studs = _user.value!!.studs + studsToAdd,
+                    all_time_studs = _user.value!!.all_time_studs + studsToAdd
+                )
             }
         }
     }

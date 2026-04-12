@@ -1,5 +1,6 @@
 package io.github.keanu365.studbud.main
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -7,10 +8,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -22,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,6 +36,9 @@ import io.github.keanu365.studbud.TitleText
 import io.github.keanu365.studbud.viewmodels.SettingsViewModel
 import io.github.keanu365.studbud.viewmodels.Theme
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
+import studbud.composeapp.generated.resources.Res
+import studbud.composeapp.generated.resources.icon_dev
 
 @Composable
 fun SettingsPage(
@@ -40,6 +47,7 @@ fun SettingsPage(
 ){
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val settingsScope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -59,6 +67,41 @@ fun SettingsPage(
                 },
                 options = Theme.getDisplayNames(),
                 currentOption = settings.theme.displayName
+            )
+        }
+        //Developer Section
+        Spacer(Modifier.height(20.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(Res.drawable.icon_dev),
+                contentDescription = null,
+            )
+            Spacer(Modifier.width(15.dp))
+            Text(
+                text = "Developer Section",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Row {
+            Text("Found a bug? ")
+            Text(
+                text = "Report it here!",
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.clickable{
+                    uriHandler.openUri("https://forms.gle/sJYzazwLHCiLdJU99")
+                }
+            )
+        }
+        Row {
+            Text("Developed by ")
+            Text(
+                text = "TheCoconutMan",
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.clickable{
+                    uriHandler.openUri("https://keanu365.github.io")
+                }
             )
         }
     }

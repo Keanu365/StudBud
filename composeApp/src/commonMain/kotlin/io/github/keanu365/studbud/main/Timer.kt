@@ -16,6 +16,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +35,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.keanu365.studbud.Assignment
@@ -76,6 +80,27 @@ fun Timer(
         }
     }
 
+    //Pause timer when screen turns off or user navigates away from app
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    timerScope.launch {
+                        if (state == TimerState.RUNNING) {
+                            viewModel.setTimerState(TimerState.PAUSED)
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     when(state){
         TimerState.CONFIRMING -> ConfirmationPage(
             userAssignment = userAssignment,
@@ -93,7 +118,7 @@ fun Timer(
         ){
             Text(
                 text = if (secs == 0) "Ready?" else "$secs",
-                style = MaterialTheme.typography.headlineLarge,
+                fontSize = 100.sp,
                 fontWeight = FontWeight.SemiBold
             )
         }
