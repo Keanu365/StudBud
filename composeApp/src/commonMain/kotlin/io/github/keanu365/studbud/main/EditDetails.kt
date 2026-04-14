@@ -1,10 +1,12 @@
 package io.github.keanu365.studbud.main
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -21,12 +23,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.keanu365.studbud.AnimatedFAB
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.DataView
+import io.github.keanu365.studbud.DatePickerModal
 import io.github.keanu365.studbud.Divider
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.InfoField
 import io.github.keanu365.studbud.TitleText
 import io.github.keanu365.studbud.User
+import io.github.keanu365.studbud.viewmodels.EditAssignmentViewModel
 import io.github.keanu365.studbud.viewmodels.EditGroupViewModel
+import kotlinx.datetime.number
 import my.connectivity.kmp.data.model.NetworkStatus
 import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.painterResource
@@ -37,7 +42,6 @@ import studbud.composeapp.generated.resources.icon_check
 fun EditGroupPage(
     group: Group,
     onSave: (Group) -> Unit,
-    onDelete: () -> Unit,
     modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
     viewModel: EditGroupViewModel = viewModel { EditGroupViewModel(group) }
 ){
@@ -107,6 +111,80 @@ fun EditGroupPage(
             onClick = {
                 viewModel.saveGroup()
                 onSave(newGroup)
+            },
+            painter = painterResource(Res.drawable.icon_check),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 50.dp)
+        )
+    }
+}
+
+@Composable
+fun EditAssignmentPage(
+    assignment: Assignment,
+    onSave: (Assignment) -> Unit,
+    modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
+    viewModel: EditAssignmentViewModel = viewModel { EditAssignmentViewModel(assignment) }
+){
+    val networkStatus by rememberNetworkStatus()
+    val newAssignment by viewModel.newAssignment.collectAsStateWithLifecycle()
+    val showDatePicker by viewModel.showDatePicker.collectAsStateWithLifecycle()
+
+    Box(modifier = Modifier.fillMaxSize().padding(horizontal = 15.dp)){
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ){
+            Spacer(Modifier.height(10.dp))
+            TitleText("Edit Assignment")
+            Text("Please save your changes before returning.")
+            Divider()
+            InfoField(
+                value = newAssignment.name,
+                onValueChange = {viewModel.setName(it)},
+                labelText = "Name",
+                isError = newAssignment.name.isBlank(),
+                errorText = "Please enter a group name!"
+            )
+            InfoField(
+                value = newAssignment.description,
+                onValueChange = {viewModel.setDescription(it)},
+                labelText = "Description",
+                isError = false,
+                singleLine = false
+            )
+            Divider()
+            Box(modifier = Modifier.fillMaxWidth()){
+                InfoField(
+                    value = "${newAssignment.due_date.day}/${newAssignment.due_date.month.number}/${newAssignment.due_date.year}",
+                    onValueChange = {},
+                    readOnly = true,
+                    labelText = "Due Date",
+                    isError = false,
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable{viewModel.setShowDatePicker(true)}
+                )
+            }
+            if (showDatePicker) DatePickerModal(
+                onDismiss = {viewModel.setShowDatePicker(false)},
+                title = "Due Date",
+                onDateSelected = {
+                    viewModel.setDueDate(it)
+                },
+            )
+            Spacer(Modifier.height(100.dp))
+        }
+        AnimatedFAB(
+            visible = assignment != newAssignment
+                    && networkStatus == NetworkStatus.Available
+                    && newAssignment.name.isNotBlank(),
+            onClick = {
+                viewModel.saveAssignment()
+                onSave(newAssignment)
             },
             painter = painterResource(Res.drawable.icon_check),
             modifier = Modifier

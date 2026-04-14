@@ -44,6 +44,7 @@ import my.connectivity.kmp.data.model.NetworkStatus
 import my.connectivity.kmp.rememberNetworkStatus
 import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
+import studbud.composeapp.generated.resources.icon_delete
 import studbud.composeapp.generated.resources.icon_edit
 import studbud.composeapp.generated.resources.icon_exit
 
@@ -52,20 +53,23 @@ fun GroupDetailsPage(
     group: Group,
     user: User? = null,
     modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
-    viewModel: GroupDetailsViewModel = viewModel { GroupDetailsViewModel(group) },
+    showActions: Boolean = true,
     onAssignmentClicked: (Assignment) -> Unit = {},
     onAssignmentAdd: () -> Unit = {},
     onEdit: () -> Unit = {},
-    onLeave: () -> Unit = {},
+    onFinish: (String) -> Unit = {},
+    viewModel: GroupDetailsViewModel = viewModel { GroupDetailsViewModel(group, user, onFinish) },
 ){
     val networkStatus by rememberNetworkStatus()
     var showMembers by remember { mutableStateOf(false) }
     var showAssignments by remember { mutableStateOf(false) }
     val members by viewModel.members.collectAsStateWithLifecycle()
     val assignments by viewModel.assignments.collectAsStateWithLifecycle()
+    val alert by viewModel.alert.collectAsStateWithLifecycle()
 
     LaunchedEffect(networkStatus){ viewModel.refresh() }
 
+    alert()
     Box(modifier = Modifier.fillMaxSize()){
         Column(
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -113,13 +117,13 @@ fun GroupDetailsPage(
                     message = "Group members and assignments may not appear until you connect to the internet."
                 )
             }
-            AnimatedDropdown(
+            if (showActions) AnimatedDropdown(
                 show = showMembers,
                 title = "Members (${group.members.size})",
                 dataList = members,
                 onShowChanged = {showMembers = it}
             )
-            AssignmentsDropdown(
+            if (showActions) AssignmentsDropdown(
                 show = showAssignments,
                 onShowChanged = {showAssignments = it},
                 title = "Assignments (${group.assignments.size})",
@@ -129,13 +133,13 @@ fun GroupDetailsPage(
             )
             Spacer(Modifier.height(100.dp))
         }
-        user?.let {
+        if (showActions) user?.let {
             val isOwner = it.id == group.owner
             AnimatedFAB(
                 visible = networkStatus == NetworkStatus.Available,
                 onClick = {
                     if (isOwner) onEdit()
-                    else onLeave()
+                    else { viewModel.showLeaveAlert() }
                 },
                 painter = painterResource(
                     if (isOwner) Res.drawable.icon_edit
@@ -146,6 +150,17 @@ fun GroupDetailsPage(
                     .padding(end = 20.dp, bottom = 50.dp)
 
             )
+            if (isOwner) AnimatedFAB(
+                visible = networkStatus == NetworkStatus.Available,
+                onClick = {
+                    viewModel.showDeleteAlert()
+                },
+                error = true,
+                painter = painterResource(Res.drawable.icon_delete),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 20.dp, bottom = 50.dp)
+            )
         }
     }
 }
@@ -154,16 +169,20 @@ fun GroupDetailsPage(
 fun AssignmentDetailsPage(
     assignment: Assignment,
     modifier: Modifier = Modifier.verticalScroll(rememberScrollState()),
-    viewModel: AssignmentDetailsViewModel = viewModel { AssignmentDetailsViewModel(assignment) },
     user: User? = null,
+    showActions: Boolean = true,
     onGroupClicked: (Group) -> Unit = {},
     onDo: ((Assignment) -> Unit)? = null,
-    onEdit: () -> Unit = {}
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {},
+    viewModel: AssignmentDetailsViewModel = viewModel { AssignmentDetailsViewModel(assignment, onDelete) },
 ){
     val group by viewModel.group.collectAsStateWithLifecycle()
     val networkStatus by rememberNetworkStatus()
     LaunchedEffect(networkStatus){ viewModel.getGroup() }
+    val alert by viewModel.alert.collectAsStateWithLifecycle()
 
+    alert()
     Box(modifier = Modifier.fillMaxSize()){
         Column(
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -215,7 +234,7 @@ fun AssignmentDetailsPage(
                     ?: if (networkStatus == NetworkStatus.Available) "Personal"
                     else "Connect to the internet to view the group!"
             )
-            group?.let{
+            if (showActions) group?.let{
                 Text(
                     text = "View Group",
                     color = MaterialTheme.colorScheme.tertiary,
@@ -251,7 +270,7 @@ fun AssignmentDetailsPage(
             }
             Spacer(Modifier.height(100.dp))
         }
-        if (user?.id == group?.owner) {
+        if (showActions && (user?.id == group?.owner || user?.id == assignment.group_id)) {
             AnimatedFAB(
                 visible = networkStatus == NetworkStatus.Available,
                 onClick = onEdit,
@@ -259,6 +278,17 @@ fun AssignmentDetailsPage(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = 50.dp)
+            )
+            AnimatedFAB(
+                visible = networkStatus == NetworkStatus.Available,
+                onClick = {
+                    viewModel.showDeleteAlert()
+                },
+                error = true,
+                painter = painterResource(Res.drawable.icon_delete),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 20.dp, bottom = 50.dp)
             )
         }
     }

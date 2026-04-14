@@ -1,6 +1,5 @@
 package io.github.keanu365.studbud.viewmodels
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.Assignment
@@ -14,8 +13,9 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 class AssignmentDetailsViewModel(
-    val assignment: Assignment
-): ViewModel() {
+    val assignment: Assignment,
+    val onDelete: () -> Unit
+): DetailsViewModel() {
     private val _group = MutableStateFlow<Group?>(null)
     val group = _group.asStateFlow()
 
@@ -35,6 +35,44 @@ class AssignmentDetailsViewModel(
             e.printStackTrace()
         } finally {
             isGetting = false
+        }
+    }
+
+    fun showDeleteAlert(){
+        _alert.value = {
+            Alert(
+                title = "Delete Assignment",
+                text = "Are you sure you want to delete this assignment?",
+            ){
+                viewModelScope.launch {
+                    _alert.value = {}
+                    deleteAssignment()
+                }
+            }
+        }
+    }
+    suspend fun deleteAssignment(){
+        try {
+            _group.value?.let{
+                supabase.from("groups")
+                    .update(
+                        {
+                            set("assignments", it.assignments.minus(assignment.id))
+                        }
+                    ){
+                        filter {
+                            eq("id", it.id)
+                        }
+                    }
+            }
+            supabase.from("assignments").delete {
+                filter {
+                    eq("id", assignment.id)
+                }
+            }
+            onDelete()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

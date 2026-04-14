@@ -501,19 +501,44 @@ fun SecondaryFAB(
 }
 
 @Composable
+fun ErrorFAB(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+){
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = modifier,
+        content = content,
+        containerColor = MaterialTheme.colorScheme.error,
+        contentColor = MaterialTheme.colorScheme.onError,
+        shape = CircleShape
+    )
+}
+
+@Composable
 fun AnimatedFAB(
     visible: Boolean,
     onClick: () -> Unit,
     painter: Painter,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    error: Boolean = false
 ){
     AnimatedVisibility(
         visible = visible,
-        enter = slideInHorizontally(initialOffsetX = { it }),
-        exit = slideOutHorizontally(targetOffsetX = { it }),
+        enter = slideInHorizontally(initialOffsetX = { if (error) -it else it }),
+        exit = slideOutHorizontally(targetOffsetX = { if (error) -it else it }),
         modifier = modifier
     ){
-        SecondaryFAB(
+        if (error) ErrorFAB(
+            onClick = { if (visible) onClick() }
+        ){
+            Icon(
+                painter = painter,
+                contentDescription = null
+            )
+        }
+        else SecondaryFAB(
             onClick = { if (visible) onClick() }
         ){
             Icon(

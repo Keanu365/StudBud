@@ -45,6 +45,7 @@ class MainViewModel(
                     subclass(Route.GroupDetailsPage::class, Route.GroupDetailsPage.serializer())
                     subclass(Route.EditGroupPage::class, Route.EditGroupPage.serializer())
                     subclass(Route.AssignmentDetailsPage::class, Route.AssignmentDetailsPage.serializer())
+                    subclass(Route.EditAssignmentPage::class, Route.EditAssignmentPage.serializer())
                     subclass(Route.SuccessPage::class, Route.SuccessPage.serializer())
                     subclass(Route.AddAssignmentPage::class, Route.AddAssignmentPage.serializer())
                     subclass(Route.TimerPage::class, Route.TimerPage.serializer())
@@ -317,6 +318,7 @@ class MainViewModel(
         Route.EditGroupPage,
         Route.AssignmentDetailsPage,
         Route.AddAssignmentPage,
+        Route.EditAssignmentPage,
         Route.TimerDetailsPage,
         Route.SettingsPage,
         Route.Leaderboard,

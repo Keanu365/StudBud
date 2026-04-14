@@ -47,6 +47,7 @@ import io.github.keanu365.studbud.main.AchievementsPage
 import io.github.keanu365.studbud.main.AddAssignmentPage
 import io.github.keanu365.studbud.main.AddGroupPage
 import io.github.keanu365.studbud.main.AssignmentDetailsPage
+import io.github.keanu365.studbud.main.EditAssignmentPage
 import io.github.keanu365.studbud.main.EditGroupPage
 import io.github.keanu365.studbud.main.GroupDetailsPage
 import io.github.keanu365.studbud.main.Homepage
@@ -307,7 +308,13 @@ fun NavRoot(
                                         contentDescription = null,
                                     )
                                 }
-                                successContent = {GroupDetailsPage(group, modifier = Modifier)}
+                                successContent = {
+                                    GroupDetailsPage(
+                                        group,
+                                        modifier = Modifier,
+                                        showActions = false
+                                    )
+                                }
                                 backStack.remove(key)
                                 backStack.add(Route.SuccessPage)
                                 coroutineScope.launch {
@@ -335,6 +342,10 @@ fun NavRoot(
                             },
                             onEdit = {
                                 backStack.add(Route.EditGroupPage)
+                            },
+                            onFinish = {
+                                backStack.remove(key)
+                                showSnackBar(it)
                             }
                         )
                     }
@@ -348,7 +359,6 @@ fun NavRoot(
                                 viewModel.setGroupInFocus(newGroup)
                                 backStack.remove(key)
                             },
-                            onDelete = {}
                         )
                     }
                 }
@@ -366,6 +376,13 @@ fun NavRoot(
                             onDo = { assignment ->
                                 viewModel.setAssignmentInFocus(assignment)
                                 backStack.add(Route.TimerDetailsPage)
+                            },
+                            onEdit = {
+                                backStack.add(Route.EditAssignmentPage)
+                            },
+                            onDelete = {
+                                showSnackBar("Assignment deleted!")
+                                backStack.remove(key)
                             }
                         )
                     }
@@ -385,10 +402,25 @@ fun NavRoot(
                                     )
                                 }
                                 successContent = {
-                                    AssignmentDetailsPage(it, modifier = Modifier)
+                                    AssignmentDetailsPage(
+                                        it,
+                                        modifier = Modifier,
+                                        showActions = false
+                                    )
                                 }
                                 backStack.remove(key)
                                 backStack.add(Route.SuccessPage)
+                            }
+                        )
+                    }
+                }
+                Route.EditAssignmentPage -> {
+                    NavEntry(key){
+                        EditAssignmentPage(
+                            assignment = assignmentInFocus ?: error("Assignment is null"),
+                            onSave = {
+                                showSnackBar("Assignment updated successfully!")
+                                backStack.remove(key)
                             }
                         )
                     }
