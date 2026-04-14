@@ -19,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.keanu365.studbud.Achievement
 import io.github.keanu365.studbud.TitleText
@@ -46,7 +45,7 @@ fun AchievementsPage(
             AchievementCard(
                 achievement = achievement,
                 isAttained = userAchievements.contains(achievement.id),
-                modifier = Modifier.fillMaxWidth().padding(5.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 10.dp)
             )
         }
     }
@@ -74,15 +73,19 @@ private fun AchievementCard(
                     .align(Alignment.CenterVertically)
             )
             Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f)){
+            Column(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.8f)){
                 Text(
                     text = achievement.name,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = if (achievement.secret && !isAttained) "???" else achievement.description,
-                    overflow = TextOverflow.Ellipsis
+                    text = if (achievement.secret && !isAttained) "???" else achievement.description
+                )
+                Spacer(Modifier.height(15.dp))
+                Text(
+                    text = if (achievement.secret && !isAttained) "???" else achievement.requirement,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (isAttained){

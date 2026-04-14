@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -226,6 +227,7 @@ private fun ConfirmationPage(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
+        HorizontalDivider()
         Text(
             text = "Assignment Name:\n$assignmentName",
             style = MaterialTheme.typography.headlineSmall
@@ -242,11 +244,13 @@ private fun ConfirmationPage(
             text = "Iterations: ${userAssignment.iterations} minutes",
             style = MaterialTheme.typography.headlineSmall
         )
+        HorizontalDivider()
         Text(
             text = "Total Estimated Completion Time:\n${(userAssignment.period + userAssignment.breaktime) * userAssignment.iterations} minutes",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Medium
         )
+        HorizontalDivider()
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()

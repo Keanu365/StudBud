@@ -237,39 +237,41 @@ fun Homepage(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ){
-                when(Tabs.tabs[it]){
-                    Tabs.TIMER -> TimerDetails(
-                        assignments = assignments,
-                        onStart = { assignment ->
-                            onTimerStart(assignment)
-                        }
-                    )
-                    Tabs.HOME -> Home(
-                        onAddGroup = {
-                            tryAndCatch { onAddGroup() }
-                        },
-                        groups = groups,
-                        assignments = assignments,
-                        showGroups = showGroups,
-                        showAssignments = showAssignments,
-                        onShowGroup = {show -> showGroups = show},
-                        onShowAssignments = {show -> showAssignments = show},
-                        onGroupClicked = onGroupClicked,
-                        onAssignmentClicked = onAssignmentClicked,
-                        onAssignmentAdd = {
-                            tryAndCatch { onAssignmentAdd() }
-                        }
-                    )
-                    Tabs.PROFILE -> Profile(
-                        onSignOut = {
-                            tryAndCatch { onSignOut() }
-                        },
-                        user = user,
-                        onViewPhoto = { tryAndCatch { onViewPhoto() } },
-                        onEditPhoto = { tryAndCatch { onEditPhoto() } }
-                    )
+                Column {
+                    when(Tabs.tabs[it]){
+                        Tabs.TIMER -> TimerDetails(
+                            assignments = assignments,
+                            onStart = { assignment ->
+                                onTimerStart(assignment)
+                            }
+                        )
+                        Tabs.HOME -> Home(
+                            onAddGroup = {
+                                tryAndCatch { onAddGroup() }
+                            },
+                            groups = groups,
+                            assignments = assignments,
+                            showGroups = showGroups,
+                            showAssignments = showAssignments,
+                            onShowGroup = {show -> showGroups = show},
+                            onShowAssignments = {show -> showAssignments = show},
+                            onGroupClicked = onGroupClicked,
+                            onAssignmentClicked = onAssignmentClicked,
+                            onAssignmentAdd = {
+                                tryAndCatch { onAssignmentAdd() }
+                            }
+                        )
+                        Tabs.PROFILE -> Profile(
+                            onSignOut = {
+                                tryAndCatch { onSignOut() }
+                            },
+                            user = user,
+                            onViewPhoto = { tryAndCatch { onViewPhoto() } },
+                            onEditPhoto = { tryAndCatch { onEditPhoto() } }
+                        )
+                    }
+                    Spacer(Modifier.height(60.dp)) //Buffer for buttons
                 }
-                Spacer(Modifier.height(60.dp)) //Buffer for buttons
             }
             if (getDeviceType() == "Desktop") IconButton(
                 enabled = !isRefreshing,

@@ -54,15 +54,15 @@ fun TimerDetails(
         val period = period.ifEmpty {
             period = "0"
             "0"
-        }.toInt()
+        }.filter{it.isDigit()}.toInt()
         val breaktime = breaktime.ifEmpty {
             breaktime = "0"
             "0"
-        }.toInt()
+        }.filter{it.isDigit()}.toInt()
         val iterations = iterations.ifEmpty {
             iterations = "0"
             "0"
-        }.toInt()
+        }.filter{it.isDigit()}.toInt()
 
         isPeriodError = period <= 0 || period <= breaktime + 5
         isBreaktimeError = breaktime !in 1..period-5

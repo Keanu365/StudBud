@@ -47,6 +47,7 @@ import io.github.keanu365.studbud.main.AchievementsPage
 import io.github.keanu365.studbud.main.AddAssignmentPage
 import io.github.keanu365.studbud.main.AddGroupPage
 import io.github.keanu365.studbud.main.AssignmentDetailsPage
+import io.github.keanu365.studbud.main.EditGroupPage
 import io.github.keanu365.studbud.main.GroupDetailsPage
 import io.github.keanu365.studbud.main.Homepage
 import io.github.keanu365.studbud.main.ImageView
@@ -105,10 +106,12 @@ fun NavRoot(
     }
     fun startTimer(assignment: AutoUserAssignment){
         try {
-            viewModel.prepareTimer(assignment)
-            backStack.add(Route.TimerPage)
-            for (i in backStack.size-2 downTo 0){
-                if (backStack[i] != Route.Homepage) backStack.removeAt(i)
+            coroutineScope.launch{
+                viewModel.prepareTimer(assignment)
+                backStack.add(Route.TimerPage)
+                for (i in backStack.size - 2 downTo 0) {
+                    if (backStack[i] != Route.Homepage) backStack.removeAt(i)
+                }
             }
         } catch (_: HttpRequestException) {
             showSnackBar("Please connect to the Internet!")
@@ -320,6 +323,7 @@ fun NavRoot(
                     NavEntry(key) {
                         GroupDetailsPage(
                             group = groupInFocus ?: error("Group is null"),
+                            user = user,
                             onAssignmentClicked = { assignment ->
                                 viewModel.setAssignmentInFocus(assignment)
                                 //Clean up and remove previous assignment details
@@ -328,7 +332,23 @@ fun NavRoot(
                             },
                             onAssignmentAdd = {
                                 backStack.add(Route.AddAssignmentPage)
+                            },
+                            onEdit = {
+                                backStack.add(Route.EditGroupPage)
                             }
+                        )
+                    }
+                }
+                Route.EditGroupPage -> {
+                    NavEntry(key){
+                        EditGroupPage(
+                            group = groupInFocus ?: error("Group is null"),
+                            onSave = { newGroup ->
+                                showSnackBar("Group updated successfully! Refresh to view changes.")
+                                viewModel.setGroupInFocus(newGroup)
+                                backStack.remove(key)
+                            },
+                            onDelete = {}
                         )
                     }
                 }
@@ -336,6 +356,7 @@ fun NavRoot(
                     NavEntry(key) {
                         AssignmentDetailsPage(
                             assignment = assignmentInFocus ?: error("Assignment is null"),
+                            user = user,
                             onGroupClicked = { group ->
                                 viewModel.setGroupInFocus(group)
                                 //Clean up and remove previous group details

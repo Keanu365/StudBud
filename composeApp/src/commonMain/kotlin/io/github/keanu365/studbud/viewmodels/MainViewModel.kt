@@ -43,6 +43,7 @@ class MainViewModel(
                     subclass(Route.Homepage::class, Route.Homepage.serializer())
                     subclass(Route.AddGroupPage::class, Route.AddGroupPage.serializer())
                     subclass(Route.GroupDetailsPage::class, Route.GroupDetailsPage.serializer())
+                    subclass(Route.EditGroupPage::class, Route.EditGroupPage.serializer())
                     subclass(Route.AssignmentDetailsPage::class, Route.AssignmentDetailsPage.serializer())
                     subclass(Route.SuccessPage::class, Route.SuccessPage.serializer())
                     subclass(Route.AddAssignmentPage::class, Route.AddAssignmentPage.serializer())
@@ -85,7 +86,7 @@ class MainViewModel(
 
     private var isRefreshing = false
     private val _newAchievementEvents = kotlinx.coroutines.flow.MutableSharedFlow<List<Achievement>>()
-    val newAchievementEvents = _newAchievementEvents.asSharedFlow() // Use asSharedFlow if preferred// 2. Fix refreshUser to use 'finally' so the flag always resets
+    val newAchievementEvents = _newAchievementEvents.asSharedFlow()
 
     suspend fun refreshUser(): List<Achievement> {
         if (isRefreshing) return emptyList()
@@ -202,7 +203,7 @@ class MainViewModel(
             .decodeList<Achievement>()
         _allAchievements.emit(allAchievements)
         val newAchievements = mutableListOf<Achievement>()
-        newUser.achievements?.forEach { achId ->
+        if (newUser.id == _user.value?.id) newUser.achievements?.forEach { achId ->
             val isNew = !oldAchievements.contains(achId)
             if (isNew) {
                 allAchievements.find { it.id == achId }?.let {
@@ -237,7 +238,7 @@ class MainViewModel(
                     { set("achievements", user.achievements.plus(id)) }
                 ) {
                     filter {
-                        eq("id", _user.value!!.id)
+                        eq("id", user.id)
                     }
                 }
         }
@@ -254,21 +255,19 @@ class MainViewModel(
     val _userAssignmentInFocus = MutableStateFlow<UserAssignment?>(null)
     val userAssignmentInFocus = _userAssignmentInFocus.asStateFlow()
 
-    fun prepareTimer(assignment: AutoUserAssignment){
-        viewModelScope.launch {
-            _user.value?.let{user ->
-                _userAssignmentInFocus.value = if (assignment.assignment_id.isBlank())
-                    UserAssignment(
-                        user_id = user.id,
-                        period = assignment.period,
-                        breaktime = assignment.breaktime,
-                        iterations = assignment.iterations
-                    )
-                else supabase.from("user_assignments")
-                    .insert(assignment){select()}
-                    .decodeSingle<UserAssignment>()
-            } ?: println("Timer cannot be started as user is null.")
-        }
+    suspend fun prepareTimer(assignment: AutoUserAssignment){
+        _user.value?.let{user ->
+            _userAssignmentInFocus.value = if (assignment.assignment_id.isBlank())
+                UserAssignment(
+                    user_id = user.id,
+                    period = assignment.period,
+                    breaktime = assignment.breaktime,
+                    iterations = assignment.iterations
+                )
+            else supabase.from("user_assignments")
+                .insert(assignment){select()}
+                .decodeSingle<UserAssignment>()
+        } ?: println("Timer cannot be started as user is null.")
     }
     fun endTimer(userAssignment: UserAssignment, studsToAdd: Int = 0){
         viewModelScope.launch {
@@ -315,6 +314,7 @@ class MainViewModel(
     val showBackKeys = listOf(
         Route.AddGroupPage,
         Route.GroupDetailsPage,
+        Route.EditGroupPage,
         Route.AssignmentDetailsPage,
         Route.AddAssignmentPage,
         Route.TimerDetailsPage,

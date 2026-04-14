@@ -6,7 +6,9 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +37,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -135,7 +141,7 @@ fun InfoField(
                 .fillMaxWidth()
                 .then(if (singleLine) Modifier.height(75.dp) else Modifier),
             //Password transformations
-            trailingIcon =  {
+            trailingIcon = trailingIcon?.let{{
                 if (isPassword)
                     IconButton(
                         onClick = { showPassword = !showPassword },
@@ -150,8 +156,8 @@ fun InfoField(
                                 .size(24.dp)
                         )
                     }
-                else if (trailingIcon != null) trailingIcon()
-            },
+                else it()
+            }},
             visualTransformation = if (showPassword || !isPassword) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
                 capitalization = capitalization,
@@ -479,6 +485,46 @@ fun ErrorButton(
 }
 
 @Composable
+fun SecondaryFAB(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+){
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = modifier,
+        content = content,
+        containerColor = MaterialTheme.colorScheme.secondary,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
+        shape = CircleShape
+    )
+}
+
+@Composable
+fun AnimatedFAB(
+    visible: Boolean,
+    onClick: () -> Unit,
+    painter: Painter,
+    modifier: Modifier = Modifier
+){
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInHorizontally(initialOffsetX = { it }),
+        exit = slideOutHorizontally(targetOffsetX = { it }),
+        modifier = modifier
+    ){
+        SecondaryFAB(
+            onClick = { if (visible) onClick() }
+        ){
+            Icon(
+                painter = painter,
+                contentDescription = null
+            )
+        }
+    }
+}
+
+@Composable
 fun SurfaceAlert(
     alertType: AlertType,
     message: String,
@@ -488,7 +534,7 @@ fun SurfaceAlert(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
     ){
         Row(
@@ -567,4 +613,14 @@ fun DatePickerModal(
             colors = datePickerColors(),
         )
     }
+}
+
+@Composable
+fun Divider(){
+    HorizontalDivider(
+        thickness = 3.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 5.dp)
+    )
 }
