@@ -1,5 +1,5 @@
 [versions]
-agp = "9.1.0"
+agp = "9.1.1"
 android-compileSdk = "36"
 android-minSdk = "29"
 android-targetSdk = "36"
@@ -14,7 +14,7 @@ composeMultiplatform = "1.10.3"
 connectivityKmp = "0.0.2"
 datastore = "1.2.1"
 #junit = "4.13.2"
-imagepickerkmp = "1.0.35"
+imagepickerkmp = "1.0.38"
 kotlin = "2.3.20"
 kotlinx-coroutines = "1.10.2"
 #noinspection NewerVersionAvailable
@@ -51,7 +51,7 @@ kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-s
 jetbrains-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "multiplatform-nav3-ui" }
 jetbrains-lifecycle-viewmodel-nav3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "androidx-lifecycle" }
 #jetbrains-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidx-lifecycle"}
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.10.0" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.11.0" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "supabase" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "supabase" }
 ktor-client-apache5 = { module = "io.ktor:ktor-client-apache5", version.ref = "supabase" }

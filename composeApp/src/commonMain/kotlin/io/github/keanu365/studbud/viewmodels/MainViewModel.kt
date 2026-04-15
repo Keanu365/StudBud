@@ -256,8 +256,8 @@ class MainViewModel(
     val _userAssignmentInFocus = MutableStateFlow<UserAssignment?>(null)
     val userAssignmentInFocus = _userAssignmentInFocus.asStateFlow()
 
-    suspend fun prepareTimer(assignment: AutoUserAssignment){
-        _user.value?.let{user ->
+    suspend fun prepareTimer(assignment: Any){
+        if (assignment is AutoUserAssignment) _user.value?.let{user ->
             _userAssignmentInFocus.value = if (assignment.assignment_id.isBlank())
                 UserAssignment(
                     user_id = user.id,
@@ -269,6 +269,7 @@ class MainViewModel(
                 .insert(assignment){select()}
                 .decodeSingle<UserAssignment>()
         } ?: println("Timer cannot be started as user is null.")
+        else if (assignment is UserAssignment) _userAssignmentInFocus.value = assignment
     }
     fun endTimer(userAssignment: UserAssignment, studsToAdd: Int = 0){
         viewModelScope.launch {

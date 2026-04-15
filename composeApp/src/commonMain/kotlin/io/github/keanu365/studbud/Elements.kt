@@ -141,23 +141,21 @@ fun InfoField(
                 .fillMaxWidth()
                 .then(if (singleLine) Modifier.height(75.dp) else Modifier),
             //Password transformations
-            trailingIcon = trailingIcon?.let{{
-                if (isPassword)
-                    IconButton(
-                        onClick = { showPassword = !showPassword },
-                    ){
-                        Icon(
-                            painter = painterResource(
-                                if (showPassword) Res.drawable.icon_visible
-                                else Res.drawable.icon_invisible
-                            ),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(24.dp)
-                        )
-                    }
-                else it()
-            }},
+            trailingIcon = if (isPassword) {{
+                IconButton(
+                    onClick = { showPassword = !showPassword },
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            if (showPassword) Res.drawable.icon_visible
+                            else Res.drawable.icon_invisible
+                        ),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(24.dp)
+                    )
+                }
+            }} else trailingIcon,
             visualTransformation = if (showPassword || !isPassword) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
                 capitalization = capitalization,

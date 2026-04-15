@@ -1,6 +1,5 @@
 package io.github.keanu365.studbud.viewmodels
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.Assignment
@@ -14,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class TimerViewModel(
     val userAssignment: UserAssignment
-) : ViewModel() {
+) : AlertViewModel() {
     private var timerJob: Job? = null
 
     private val _timerState = MutableStateFlow(TimerState.CONFIRMING)
@@ -71,8 +70,8 @@ class TimerViewModel(
         }
     }
 
-    suspend fun setTimerState(state: TimerState) {
-        _timerState.emit(state)
+    fun setTimerState(state: TimerState) {
+        _timerState.value = state
         if (state == TimerState.PAUSED || state == TimerState.FINISHED) {
             timerJob?.cancel() // Stop the loop immediately on pause
         }
@@ -89,6 +88,27 @@ class TimerViewModel(
                 .decodeSingleOrNull<Assignment>()
         } catch (_: Exception){
             null
+        }
+    }
+
+    suspend fun deleteUserAssignment() {
+        if (userAssignment.user_id.isNotBlank()) try {
+            supabase.from("user_assignments").delete {
+                filter {
+                    eq("uuid", userAssignment.uuid)
+                }
+            }
+        } catch (e: Exception) {e.printStackTrace()}
+    }
+
+    fun showSaveAlert(){
+        _alert.value = {
+            Alert(
+                title = "Save Assignment",
+                text = "Save this assignment for later? All progress will be lost.",
+            ){
+                setTimerState(TimerState.FINISHED)
+            }
         }
     }
 }

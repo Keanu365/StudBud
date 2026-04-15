@@ -17,16 +17,17 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.keanu365.studbud.*
+import io.github.keanu365.studbud.viewmodels.TimerDetailsViewModel
 import my.connectivity.kmp.data.model.NetworkStatus
 import my.connectivity.kmp.rememberNetworkStatus
 
@@ -35,48 +36,25 @@ import my.connectivity.kmp.rememberNetworkStatus
 fun TimerDetails(
     assignments: List<Assignment>,
     onStart: (AutoUserAssignment) -> Unit,
+    onStartSaved: (UserAssignment) -> Unit,
     startingAssignment: Assignment? = null,
-    selectable: Boolean = startingAssignment == null
+    selectable: Boolean = startingAssignment == null,
+    viewModel: TimerDetailsViewModel = viewModel { TimerDetailsViewModel(startingAssignment, onStartSaved) }
 ){
     val networkStatus by rememberNetworkStatus()
-    //TODO Add a way for user to access "saved" assignments (i.e. incomplete)
-    var period by remember { mutableStateOf("25") }
-    var breaktime by remember { mutableStateOf("5") }
-    var iterations by remember { mutableStateOf("1") }
+    val alert by viewModel.alert.collectAsStateWithLifecycle()
+    val period by viewModel.period.collectAsStateWithLifecycle()
+    val breaktime by viewModel.breaktime.collectAsStateWithLifecycle()
+    val iterations by viewModel.iterations.collectAsStateWithLifecycle()
+    val isPeriodError by viewModel.periodError.collectAsStateWithLifecycle()
+    val isBreaktimeError by viewModel.breaktimeError.collectAsStateWithLifecycle()
+    val isIterationsError by viewModel.iterationsError.collectAsStateWithLifecycle()
+    val selectedAssignment by viewModel.selectedAssignment.collectAsStateWithLifecycle()
+    val isAssignmentsExpanded by viewModel.assignmentsExpanded.collectAsStateWithLifecycle()
 
-    var isPeriodError by remember {mutableStateOf(false)}
-    var isBreaktimeError by remember {mutableStateOf(false)}
-    var isIterationsError by remember {mutableStateOf(false)}
+    LaunchedEffect(Unit){viewModel.getSavedAssignments()}
 
-    var isAssignmentsExpanded by remember { mutableStateOf(false) }
-    var selectedAssignment by remember {mutableStateOf(startingAssignment)}
-    fun checkDetails() = run {
-        val period = period.ifEmpty {
-            period = "0"
-            "0"
-        }.filter{it.isDigit()}.toInt()
-        val breaktime = breaktime.ifEmpty {
-            breaktime = "0"
-            "0"
-        }.filter{it.isDigit()}.toInt()
-        val iterations = iterations.ifEmpty {
-            iterations = "0"
-            "0"
-        }.filter{it.isDigit()}.toInt()
-
-        isPeriodError = period <= 0 || period <= breaktime + 5
-        isBreaktimeError = breaktime !in 1..period-5
-        isIterationsError = iterations <= 0
-        if (!isPeriodError && !isBreaktimeError && !isIterationsError){
-            onStart(AutoUserAssignment(
-                assignment_id = selectedAssignment?.id ?: "",
-                period = period,
-                breaktime = breaktime,
-                iterations = iterations
-            ))
-        }
-    }
-
+    alert()
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.BottomCenter
@@ -95,10 +73,17 @@ fun TimerDetails(
                     message = "While offline, no assignments will be available."
                 )
                 Spacer(Modifier.height(20.dp))
+            } else {
+                TertiaryButton(
+                    onClick = {viewModel.showSavedAssignments()}
+                ){
+                    Text("View Saved Sessions")
+                }
+                Spacer(Modifier.height(20.dp))
             }
             ExposedDropdownMenuBox(
                 expanded = isAssignmentsExpanded,
-                onExpandedChange = { isAssignmentsExpanded = !isAssignmentsExpanded },
+                onExpandedChange = { viewModel.toggleAssignments() },
             ){
                 InfoField(
                     value = selectedAssignment?.name ?: "None",
@@ -115,15 +100,14 @@ fun TimerDetails(
                 )
                 if (selectable) ExposedDropdownMenu(
                     expanded = isAssignmentsExpanded,
-                    onDismissRequest = { isAssignmentsExpanded = false },
+                    onDismissRequest = { viewModel.toggleAssignments(false) },
                     modifier = Modifier
                         .heightIn(max = 300.dp)
                 ){
                     DropdownMenuItem(
                         text = {Text("None")},
                         onClick = {
-                            selectedAssignment = null
-                            isAssignmentsExpanded = false
+                            viewModel.setSelectedAssignment(null)
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                     )
@@ -131,8 +115,7 @@ fun TimerDetails(
                         DropdownMenuItem(
                             text = {Text(assignment.name)},
                             onClick = {
-                                selectedAssignment = assignment
-                                isAssignmentsExpanded = false
+                                viewModel.setSelectedAssignment(assignment)
                             },
                             contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                         )
@@ -142,7 +125,7 @@ fun TimerDetails(
             InfoField(
                 labelText = "Study Period",
                 value = period,
-                onValueChange = { period = it },
+                onValueChange = { viewModel.setPeriod(it) },
                 isError = isPeriodError,
                 errorText = "Period length is too short!",
                 keyboardType = KeyboardType.Number
@@ -150,7 +133,7 @@ fun TimerDetails(
             InfoField(
                 labelText = "Break Time",
                 value = breaktime,
-                onValueChange = { breaktime = it },
+                onValueChange = { viewModel.setBreaktime(it) },
                 isError = isBreaktimeError,
                 errorText = "Break time is too long!",
                 keyboardType = KeyboardType.Number
@@ -158,14 +141,16 @@ fun TimerDetails(
             InfoField(
                 labelText = "Iterations",
                 value = iterations,
-                onValueChange = { iterations = it },
+                onValueChange = { viewModel.setIterations(it) },
                 isError = isIterationsError,
                 errorText = "Must be more than zero!",
                 keyboardType = KeyboardType.Number
             )
         }
         TertiaryButton(
-            onClick = { checkDetails() },
+            onClick = {
+                viewModel.checkDetails()?.let{ onStart(it) }
+            },
             modifier = Modifier
                 .padding(15.dp)
                 .fillMaxWidth()

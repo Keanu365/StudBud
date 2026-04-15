@@ -53,7 +53,7 @@ fun Leaderboard(
                 onValueChange = {},
                 readOnly = true,
                 isError = false,
-                labelText = "Assignment",
+                labelText = "Group",
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupsExpanded) },
                 modifier = Modifier
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)

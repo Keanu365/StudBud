@@ -1,5 +1,6 @@
 package io.github.keanu365.studbud.main
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +42,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.keanu365.studbud.Assignment
-import io.github.keanu365.studbud.ErrorButton
+import io.github.keanu365.studbud.Divider
 import io.github.keanu365.studbud.TertiaryButton
 import io.github.keanu365.studbud.TitleText
 import io.github.keanu365.studbud.UserAssignment
@@ -87,10 +87,8 @@ fun Timer(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
-                    timerScope.launch {
-                        if (state == TimerState.RUNNING) {
-                            viewModel.setTimerState(TimerState.PAUSED)
-                        }
+                    if (state == TimerState.RUNNING) {
+                        viewModel.setTimerState(TimerState.PAUSED)
                     }
                 }
                 else -> {}
@@ -102,106 +100,127 @@ fun Timer(
         }
     }
 
-    when(state){
-        TimerState.CONFIRMING -> ConfirmationPage(
-            userAssignment = userAssignment,
-            assignmentName = assignment?.name ?: "None",
-            onConfirm = {
-                timerScope.launch {
-                    viewModel.startTimer()
-                }
-            },
-            onDismiss = {onFinish(null)}
-        )
-        TimerState.STARTING -> Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ){
-            Text(
-                text = if (secs == 0) "Ready?" else "$secs",
-                fontSize = 100.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-        TimerState.INTERMISSION -> {
-            IntermissionPage(
-                next = nextTimer,
-                iterations = "$iterations/${userAssignment.iterations}",
-                onContinue = {
-                    var nextMins = 0
-                    nextTimer = if (nextTimer.endsWith("break")) "${userAssignment.period} minute study"
-                        .also{nextMins = userAssignment.breaktime}
-                    else "${userAssignment.breaktime} minute break"
-                        .also{nextMins = userAssignment.period; iterations++}
-                    viewModel.resumeTimer(nextMins)
-                }
-            )
-        }
-        TimerState.FINISHED -> {
-            onFinish(userAssignment)
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ){
-                TitleText("Finished")
-            }
-        }
-        else -> {
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxSize().keepScreenOn()
-            ) {
-                TitleText(
-                    text = assignment?.name ?: "Study Session"
+    val alert by viewModel.alert.collectAsStateWithLifecycle()
+    alert()
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column {
+            when(state){
+                TimerState.CONFIRMING -> ConfirmationPage(
+                    userAssignment = userAssignment,
+                    assignmentName = assignment?.name ?: "None",
+                    onConfirm = {
+                        timerScope.launch {
+                            viewModel.startTimer()
+                        }
+                    },
+                    onCancel = {
+                        timerScope.launch {
+                            viewModel.deleteUserAssignment()
+                            onFinish(null)
+                        }
+                    },
                 )
-                Spacer(Modifier.height(15.dp))
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
+                TimerState.STARTING -> Box(
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ){
-                    TimerCountdown(
-                        value = value,
-                        modifier = Modifier.fillMaxWidth(0.8f).aspectRatio(1f)
-                    )
                     Text(
-                        text = "${if (mins < 10) "0$mins" else mins} : ${if (secs < 10) "0$secs" else secs}",
-                        fontSize = 75.sp,
+                        text = if (secs == 0) "Ready?" else "$secs",
+                        fontSize = 100.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                TimerStatus(
-                    next = nextTimer,
-                    iterations = "$iterations/${userAssignment.iterations}",
-                    modifier = Modifier.fillMaxWidth().padding(15.dp)
-                )
-                Button(
-                    onClick = {
-                        if (state == TimerState.RUNNING) {
-                            timerScope.launch { viewModel.setTimerState(TimerState.PAUSED) }
-                        } else {
-                            viewModel.resumeTimer(mins, secs)
+                TimerState.INTERMISSION -> {
+                    IntermissionPage(
+                        next = nextTimer,
+                        iterations = "$iterations/${userAssignment.iterations}",
+                        onContinue = {
+                            var nextMins = 0
+                            nextTimer = if (nextTimer.endsWith("break")) "${userAssignment.period} minute study"
+                                .also{nextMins = userAssignment.breaktime}
+                            else "${userAssignment.breaktime} minute break"
+                                .also{nextMins = userAssignment.period; iterations++}
+                            viewModel.resumeTimer(nextMins)
                         }
-                    },
-                    colors = buttonColors().copy(
-                        containerColor = if (state == TimerState.PAUSED) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                    ),
-                    modifier = Modifier.fillMaxWidth().padding(10.dp)
-                ){
-                    Text(
-                        text = if (state == TimerState.RUNNING) "PAUSE" else "RESUME",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium
                     )
                 }
-                ErrorButton(
-                    onClick = {
-                        timerScope.launch {
-                            viewModel.setTimerState(TimerState.FINISHED)
+                TimerState.FINISHED -> {
+                    onFinish(userAssignment)
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ){
+                        TitleText("Finished")
+                    }
+                }
+                else -> {
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxSize().keepScreenOn()
+                    ) {
+                        TitleText(
+                            text = assignment?.name ?: "Study Session"
+                        )
+                        Spacer(Modifier.height(15.dp))
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ){
+                            TimerCountdown(
+                                value = value,
+                                modifier = Modifier.fillMaxWidth(0.8f).aspectRatio(1f)
+                            )
+                            Text(
+                                text = "${if (mins < 10) "0$mins" else mins} : ${if (secs < 10) "0$secs" else secs}",
+                                fontSize = 75.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        TimerStatus(
+                            next = nextTimer,
+                            iterations = "$iterations/${userAssignment.iterations}",
+                            modifier = Modifier.fillMaxWidth().padding(15.dp)
+                        )
+                        Button(
+                            onClick = {
+                                if (state == TimerState.RUNNING) {
+                                    viewModel.setTimerState(TimerState.PAUSED)
+                                } else {
+                                    viewModel.resumeTimer(mins, secs)
+                                }
+                            },
+                            colors = buttonColors().copy(
+                                containerColor = if (state == TimerState.PAUSED) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+                            ),
+                            modifier = Modifier.fillMaxWidth().padding(10.dp)
+                        ){
+                            Text(
+                                text = if (state == TimerState.RUNNING) "PAUSE" else "RESUME",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
+                }
+            }
+            AnimatedVisibility(
+                visible = userAssignment.assignment_id.isNotBlank() && state != TimerState.FINISHED && state != TimerState.STARTING,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 30.dp)
+            ){
+                Button(
+                    onClick = { viewModel.showSaveAlert() },
+                    colors = buttonColors().copy(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ){
-                    Text("Dismiss")
+                    Text("Save For Later")
                 }
             }
         }
@@ -213,7 +232,7 @@ private fun ConfirmationPage(
     userAssignment: UserAssignment,
     assignmentName: String = "None",
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onCancel: () -> Unit
 ){
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -227,7 +246,7 @@ private fun ConfirmationPage(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
-        HorizontalDivider()
+        Divider()
         Text(
             text = "Assignment Name:\n$assignmentName",
             style = MaterialTheme.typography.headlineSmall
@@ -241,29 +260,29 @@ private fun ConfirmationPage(
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            text = "Iterations: ${userAssignment.iterations} minutes",
+            text = "Iterations: ${userAssignment.iterations}",
             style = MaterialTheme.typography.headlineSmall
         )
-        HorizontalDivider()
+        Divider()
         Text(
-            text = "Total Estimated Completion Time:\n${(userAssignment.period + userAssignment.breaktime) * userAssignment.iterations} minutes",
+            text = "Total Completion Time:\n${(userAssignment.period + userAssignment.breaktime) * userAssignment.iterations} minutes",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Medium
         )
-        HorizontalDivider()
+        Divider()
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()
         ) {
             Button(
-                onClick = onDismiss,
+                onClick = onCancel,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent,
                     contentColor = MaterialTheme.colorScheme.onBackground
                 )
             ){
                 Text(
-                    text = "Cancel",
+                    text = if (userAssignment.assignment_id.isBlank()) "Cancel" else "Delete",
                     style = MaterialTheme.typography.headlineSmall
                 )
             }

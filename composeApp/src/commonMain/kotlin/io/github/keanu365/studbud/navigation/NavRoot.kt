@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -34,7 +34,6 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.storage.storage
-import io.github.keanu365.studbud.AutoUserAssignment
 import io.github.keanu365.studbud.SplashLength
 import io.github.keanu365.studbud.SplashScreen
 import io.github.keanu365.studbud.SuccessPage
@@ -83,6 +82,7 @@ fun NavRoot(
     val groupInFocus by viewModel.groupInFocus.collectAsStateWithLifecycle()
     val assignmentInFocus by viewModel.assignmentInFocus.collectAsStateWithLifecycle()
     val userAssignmentInFocus by viewModel.userAssignmentInFocus.collectAsStateWithLifecycle()
+    fun refresh() { coroutineScope.launch { viewModel.refreshUser() } }
 
     var sharedEmail by remember {mutableStateOf("")}
     var sharedUsername by remember {mutableStateOf("")}
@@ -105,7 +105,7 @@ fun NavRoot(
         backStack.add(Route.SplashScreen)
         backStack.remove(key)
     }
-    fun startTimer(assignment: AutoUserAssignment){
+    fun startTimer(assignment: Any){
         try {
             coroutineScope.launch{
                 viewModel.prepareTimer(assignment)
@@ -128,8 +128,10 @@ fun NavRoot(
     var timerEnded by remember {mutableStateOf(false)}
 
     var showGallery by remember { mutableStateOf(false) }
+    // Please do switch over to the non-deprecated version in the future
+    // val galleryPicker = rememberImagePickerKMP()
     if (showGallery) {
-        GalleryPickerLauncher(
+        GalleryPickerLauncher( // This is what's deprecated
             onPhotosSelected = { photos ->
                 showGallery = false
                 val selectedImage = photos[0]
@@ -287,6 +289,9 @@ fun NavRoot(
                             onTimerStart = { assignment ->
                                 startTimer(assignment)
                             },
+                            onSavedTimerStart = {
+                                startTimer(it)
+                            },
                             onViewPhoto = {
                                 backStack.add(Route.ImageViewPage)
                             },
@@ -345,6 +350,7 @@ fun NavRoot(
                             },
                             onFinish = {
                                 backStack.remove(key)
+                                refresh()
                                 showSnackBar(it)
                             }
                         )
@@ -355,7 +361,8 @@ fun NavRoot(
                         EditGroupPage(
                             group = groupInFocus ?: error("Group is null"),
                             onSave = { newGroup ->
-                                showSnackBar("Group updated successfully! Refresh to view changes.")
+                                showSnackBar("Group updated successfully!")
+                                refresh()
                                 viewModel.setGroupInFocus(newGroup)
                                 backStack.remove(key)
                             },
@@ -382,6 +389,7 @@ fun NavRoot(
                             },
                             onDelete = {
                                 showSnackBar("Assignment deleted!")
+                                refresh()
                                 backStack.remove(key)
                             }
                         )
@@ -410,6 +418,7 @@ fun NavRoot(
                                 }
                                 backStack.remove(key)
                                 backStack.add(Route.SuccessPage)
+                                refresh()
                             }
                         )
                     }
@@ -421,6 +430,7 @@ fun NavRoot(
                             onSave = {
                                 showSnackBar("Assignment updated successfully!")
                                 backStack.remove(key)
+                                refresh()
                             }
                         )
                     }
@@ -430,17 +440,18 @@ fun NavRoot(
                         Timer(
                             userAssignment = userAssignmentInFocus ?: error("UserAssignment is null"),
                             onFinish = { userAssignment ->
-                                if (userAssignment == null) {
-                                    backStack.remove(key)
-                                }
-                                else {
-                                    val studsToAdd = userAssignment.iterations * userAssignment.period
+                                backStack.remove(key)
+                                userAssignment?.let {
+                                    val studsToAdd = it.iterations * it.period
                                     splashLength = SplashLength.LONG
                                     timerEnded = true
-                                    successTitle = "Yay, you did it!"
+                                    successTitle = if (it.completed) "Yay, you did it!" else "Saved for later!"
                                     successImage = {
                                         Image(
-                                            painter = painterResource(Res.drawable.congrats),
+                                            painter = painterResource(
+                                                if (it.completed) Res.drawable.congrats
+                                                else Res.drawable.success
+                                            ),
                                             contentDescription = null,
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -450,8 +461,9 @@ fun NavRoot(
                                     }
                                     successContent = {
                                         Text(
-                                            text = "+$studsToAdd Studs",
-                                            fontSize = 36.sp,
+                                            text = if (it.completed) "+$studsToAdd Studs"
+                                            else "You can access this session again from the homepage!",
+                                            style = MaterialTheme.typography.headlineSmall,
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier.fillMaxWidth()
                                         )
@@ -459,7 +471,7 @@ fun NavRoot(
                                     backStack.remove(key)
                                     backStack.add(Route.SplashScreen)
                                     backStack.remove(Route.Homepage)
-                                    try { viewModel.endTimer(userAssignment, studsToAdd) }
+                                    if (it.completed) try { viewModel.endTimer(it, studsToAdd) }
                                     catch(e: Exception) { showSnackBar(e.message?: "An error occurred.") }
                                 }
                             }
@@ -474,6 +486,9 @@ fun NavRoot(
                                 assignments = emptyList(),
                                 startingAssignment = assignmentInFocus,
                                 onStart = {
+                                    startTimer(it)
+                                },
+                                onStartSaved = {
                                     startTimer(it)
                                 },
                                 selectable = false

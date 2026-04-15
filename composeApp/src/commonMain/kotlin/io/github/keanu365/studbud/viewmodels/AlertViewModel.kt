@@ -16,7 +16,7 @@ import org.jetbrains.compose.resources.painterResource
 import studbud.composeapp.generated.resources.Res
 import studbud.composeapp.generated.resources.icon_warning
 
-open class DetailsViewModel: ViewModel() {
+open class AlertViewModel: ViewModel() {
     protected val _alert = MutableStateFlow<@Composable () -> Unit>({})
     val alert = _alert.asStateFlow()
     @Composable

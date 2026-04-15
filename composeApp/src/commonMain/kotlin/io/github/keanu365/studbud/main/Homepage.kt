@@ -46,6 +46,7 @@ import io.github.keanu365.studbud.AutoUserAssignment
 import io.github.keanu365.studbud.Group
 import io.github.keanu365.studbud.TertiaryButton
 import io.github.keanu365.studbud.TitleText
+import io.github.keanu365.studbud.UserAssignment
 import io.github.keanu365.studbud.getDeviceType
 import io.github.keanu365.studbud.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
@@ -70,6 +71,7 @@ fun Homepage(
     onAssignmentClicked: (Assignment) -> Unit,
     onAssignmentAdd: () -> Unit,
     onTimerStart: (AutoUserAssignment) -> Unit,
+    onSavedTimerStart: (UserAssignment) -> Unit,
     onViewPhoto: () -> Unit = {},
     onEditPhoto: () -> Unit = {},
 ){
@@ -243,6 +245,9 @@ fun Homepage(
                             assignments = assignments,
                             onStart = { assignment ->
                                 onTimerStart(assignment)
+                            },
+                            onStartSaved = { assignment ->
+                                onSavedTimerStart(assignment)
                             }
                         )
                         Tabs.HOME -> Home(

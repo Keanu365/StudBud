@@ -28,7 +28,7 @@ open class GroupDetailsViewModel(
     val group: Group,
     val user: User? = null,
     val onFinish: (String) -> Unit = {}
-): DetailsViewModel() {
+): AlertViewModel() {
     protected val _members = MutableStateFlow<List<User>>(emptyList())
     val members = _members.asStateFlow()
 
