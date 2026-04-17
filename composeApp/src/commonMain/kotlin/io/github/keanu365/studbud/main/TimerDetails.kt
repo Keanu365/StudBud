@@ -52,7 +52,7 @@ fun TimerDetails(
     val selectedAssignment by viewModel.selectedAssignment.collectAsStateWithLifecycle()
     val isAssignmentsExpanded by viewModel.assignmentsExpanded.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit){viewModel.getSavedAssignments()}
+    LaunchedEffect(networkStatus){viewModel.getSavedAssignments()}
 
     alert()
     Box(
@@ -67,19 +67,21 @@ fun TimerDetails(
                 .verticalScroll(rememberScrollState())
         ){
             TitleText("Study Timer")
-            if (networkStatus != NetworkStatus.Available){
-                SurfaceAlert(
-                    alertType = AlertType.WARNING,
-                    message = "While offline, no assignments will be available."
-                )
-                Spacer(Modifier.height(20.dp))
-            } else {
-                TertiaryButton(
-                    onClick = {viewModel.showSavedAssignments()}
-                ){
-                    Text("View Saved Sessions")
+            if (startingAssignment == null){
+                if (networkStatus != NetworkStatus.Available){
+                    SurfaceAlert(
+                        alertType = AlertType.WARNING,
+                        message = "While offline, no assignments will be available."
+                    )
+                    Spacer(Modifier.height(20.dp))
+                } else {
+                    TertiaryButton(
+                        onClick = {viewModel.showSavedAssignments()}
+                    ){
+                        Text("View Saved Sessions")
+                    }
+                    Spacer(Modifier.height(20.dp))
                 }
-                Spacer(Modifier.height(20.dp))
             }
             ExposedDropdownMenuBox(
                 expanded = isAssignmentsExpanded,

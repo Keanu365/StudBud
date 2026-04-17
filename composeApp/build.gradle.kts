@@ -24,10 +24,12 @@ kotlin {
     }
     
     listOf(
+        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
+            export(libs.kmpnotifier)
             baseName = "ComposeApp"
             isStatic = true
         }
@@ -69,6 +71,7 @@ kotlin {
             implementation(libs.connectivity.kmp)
             implementation(libs.zoomable)
             implementation(libs.imagepickerkmp)
+            api(libs.kmpnotifier)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

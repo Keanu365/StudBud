@@ -17,7 +17,7 @@ data class User(
     val all_time_studs: Int = 0,
     val groups: List<String>? = null,
     val achievements: List<Int>? = null,
-    val fcm_token: String? = null //TODO Push Notifications
+    val fcm_token: String? = null
 )
 @Serializable
 data class Group(

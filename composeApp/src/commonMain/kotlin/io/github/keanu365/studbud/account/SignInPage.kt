@@ -112,16 +112,16 @@ fun SignInPage(
                             buttonEnabled = false
                             val user = signIn(emailOrUsername, password)
                             onSignIn(user)
-                            //TODO: More robust SnackBar and error message logging for both SignInPage and SignUpPage
                         } catch (_: HttpRequestException){
                             snackBarHostState.showSnackbar("There was a network error. Please check your connection and try again.")
                         } catch (e: Exception) {
                             buttonEnabled = true
                             val errorMessage = e.message ?: "Unknown error"
-                            val friendlyMsg = if (errorMessage.contains("No rows"))
-                                "Wrong email / username / password."
-                            else errorMessage
-                            snackBarHostState.showSnackbar("Sign in failed: $friendlyMsg")
+                            println(errorMessage)
+                            val friendlyMsg = if (errorMessage.contains("invalid_credentials"))
+                                "Invalid credentials. Please try again."
+                            else "Something went wrong. Please try again later."
+                            snackBarHostState.showSnackbar(friendlyMsg)
                         }
                     }
                 }

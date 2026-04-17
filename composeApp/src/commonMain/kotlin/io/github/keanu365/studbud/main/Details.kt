@@ -258,7 +258,7 @@ fun AssignmentDetailsPage(
             )
             Spacer(Modifier.height(20.dp))
             onDo?.let{
-                TertiaryButton(
+                if (networkStatus == NetworkStatus.Available) TertiaryButton(
                     onClick = { it(assignment) },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp)
                 ){

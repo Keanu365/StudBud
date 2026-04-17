@@ -430,6 +430,7 @@ fun NavRoot(
                             onSave = {
                                 showSnackBar("Assignment updated successfully!")
                                 backStack.remove(key)
+                                backStack.remove(Route.AssignmentDetailsPage)
                                 refresh()
                             }
                         )

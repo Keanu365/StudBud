@@ -147,33 +147,25 @@ fun SignUpPage(
                 if (performValidationChecks()) {
                     signUpScope.launch {
                         var snackBarMessage = ""
-                        var signUpSuccessful = false
                         try {
                             buttonEnabled = false
                             signUp(email, username, password)
                             snackBarMessage = ""
-                            signUpSuccessful = true
+                            val session = supabase.auth.currentSessionOrNull()
+                            val userId = session?.user?.id ?: ""
+                            val currentUser = User(
+                                id = userId,
+                                email = email,
+                                username = username
+                            )
+                            onSignIn(currentUser)
                         } catch(_: HttpRequestException){
                             snackBarMessage = "A network error occurred. Please check your connection and try again."
-                        } catch (e: Exception) {
-                            val errorMessage = e.message?.split(" ")[0]?.replace("_", " ")
-                                ?: "Unknown error"
-                            snackBarMessage = "Sign up failed: $errorMessage"
-                            println(e.message)
+                        } catch (_: Exception) {
+                            snackBarMessage = "Email or username may already be in use. Please try again, or try signing in."
                         } finally {
                             buttonEnabled = true
-                            if (snackBarMessage.isNotBlank())
-                                snackBarHostState.showSnackbar(snackBarMessage)
-                            if (signUpSuccessful) {
-                                val session = supabase.auth.currentSessionOrNull()
-                                val userId = session?.user?.id ?: ""
-                                val currentUser = User(
-                                    id = userId,
-                                    email = email,
-                                    username = username
-                                )
-                                onSignIn(currentUser)
-                            }
+                            if (snackBarMessage.isNotBlank()) snackBarHostState.showSnackbar(snackBarMessage)
                         }
                     }
                 }

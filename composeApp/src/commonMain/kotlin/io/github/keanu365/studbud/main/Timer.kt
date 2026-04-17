@@ -1,6 +1,5 @@
 package io.github.keanu365.studbud.main
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -161,7 +160,7 @@ fun Timer(
                     Column(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxSize().keepScreenOn()
+                        modifier = Modifier.keepScreenOn()
                     ) {
                         TitleText(
                             text = assignment?.name ?: "Study Session"
@@ -208,20 +207,20 @@ fun Timer(
                     }
                 }
             }
-            AnimatedVisibility(
-                visible = userAssignment.assignment_id.isNotBlank() && state != TimerState.FINISHED && state != TimerState.STARTING,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 30.dp)
+            val showSaveButton = userAssignment.assignment_id.isNotBlank()
+                    && state != TimerState.FINISHED
+                    && state != TimerState.STARTING
+            if (showSaveButton) Button(
+                onClick = { viewModel.showSaveAlert() },
+                colors = buttonColors().copy(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 5.dp, vertical = 20.dp)
             ){
-                Button(
-                    onClick = { viewModel.showSaveAlert() },
-                    colors = buttonColors().copy(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ){
-                    Text("Save For Later")
-                }
+                Text("Save For Later")
             }
         }
     }

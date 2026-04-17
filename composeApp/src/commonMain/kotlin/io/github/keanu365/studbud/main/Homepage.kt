@@ -146,7 +146,7 @@ fun Homepage(
         }
     }
 
-    newAchievements.forEach { newAchievement ->
+    newAchievements.firstOrNull()?.let { newAchievement ->
         AlertDialog(
             onDismissRequest = {
                 newAchievements.remove(newAchievement)

@@ -5,7 +5,6 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.User
 import io.github.keanu365.studbud.supabase
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -76,7 +75,7 @@ suspend fun signIn(
         }
     }
 
-    val finalUser = user ?: throw Exception("Profile not found. Please check your credentials.")
+    val finalUser = user ?: throw Exception("Invalid credentials. Please try again.")
 
     // 3. If we used a username, we sign in now using the email we just found
     if (initialEmail == null) {

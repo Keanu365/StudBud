@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
+import com.mmk.kmpnotifier.notification.NotifierManager
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.postgrest.from
@@ -19,9 +20,9 @@ import io.github.keanu365.studbud.UserAssignment
 import io.github.keanu365.studbud.navigation.Route
 import io.github.keanu365.studbud.supabase
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -75,6 +76,7 @@ class MainViewModel(
             appPrefs.saveSignIn(newUser.id)
             appPrefs.setFirstTimeUser(false)
             awardAchievement(0, 1, user = newUser) // Welcome achievement
+            NotifierManager.getPushNotifier().getToken()?.let{setFcmToken(it)}
         }
     }
     fun signOut(){
@@ -82,15 +84,19 @@ class MainViewModel(
             supabase.auth.signOut()
             appPrefs.signOut()
             _user.value = null
+            NotifierManager.getPushNotifier().deleteMyToken()
         }
     }
 
     private var isRefreshing = false
-    private val _newAchievementEvents = kotlinx.coroutines.flow.MutableSharedFlow<List<Achievement>>()
-    val newAchievementEvents = _newAchievementEvents.asSharedFlow()
+    private val _newAchievementEvents = kotlinx.coroutines.channels.Channel<List<Achievement>>(
+        capacity = kotlinx.coroutines.channels.Channel.BUFFERED
+    )
+    // 2. Expose as a Flow
+    val newAchievementEvents = _newAchievementEvents.receiveAsFlow()
 
-    suspend fun refreshUser(): List<Achievement> {
-        if (isRefreshing) return emptyList()
+    suspend fun refreshUser() {
+        if (isRefreshing) return
         isRefreshing = true
         try {
             val user = supabase.from("profiles")
@@ -106,12 +112,9 @@ class MainViewModel(
 
             val newOnes = setUser(user)
 
-            // 3. BROADCAST the new achievements!
             if (newOnes.isNotEmpty()) {
-                _newAchievementEvents.emit(newOnes)
+                _newAchievementEvents.send(newOnes)
             }
-
-            return newOnes
         } catch (_: NullPointerException) {
             println("Error loading user data. Please try again.")
         } catch (_: HttpRequestException){
@@ -122,14 +125,13 @@ class MainViewModel(
         } finally {
             isRefreshing = false
         }
-        return emptyList()
     }
     private suspend fun setUser(newUser: User): List<Achievement> {
         var newUser = newUser
         // Add cached studs if it is the same user
         _user.value?.let{
-            if (newUser.id == it.id && it.studs != newUser.studs){
-                try {
+            try {
+                if (newUser.id == it.id && it.studs != newUser.studs){
                     newUser = supabase.from("profiles")
                         .update (
                             {
@@ -143,9 +145,10 @@ class MainViewModel(
                             select()
                         }
                         .decodeSingle()
-                } catch (_: Exception) {
-                    println("Studs update failed. Skipped.")
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                println("Update failed. Process skipped.")
             }
         }
         //Groups
@@ -218,6 +221,32 @@ class MainViewModel(
         appPrefs.saveRawUserData(newUser, newGroups, newAssignments, allAchievements)
         println("New achievements: $newAchievements")
         return newAchievements
+    }
+
+    suspend fun setFcmToken(newToken: String){
+        _user.value?.let { user ->
+            supabase.from("profiles")
+                .update({
+                    set("fcm_token", "")
+                }){
+                    filter {
+                        eq("fcm_token", newToken)
+                    }
+                }
+            supabase.from("profiles")
+                .update(
+                    {
+                        set("fcm_token", newToken)
+                    }
+                ){
+                    filter {
+                        eq("id", user.id)
+                    }
+                }
+            user.groups?.forEach { groupId ->
+                NotifierManager.getPushNotifier().subscribeToTopic("group_$groupId")
+            }
+        }
     }
 
     suspend fun awardAchievement(
@@ -351,6 +380,20 @@ class MainViewModel(
                     // Only refresh if we actually have NO data
                     refreshUser()
                 }
+
+                // Notification stuff
+                // To implement payload data in the future, go see https://github.com/mirzemehdi/KMPNotifier
+                val notifier = NotifierManager.getLocalNotifier()
+                NotifierManager.addListener(object: NotifierManager.Listener {
+                    override fun onNewToken(token: String) {
+                        println("New Token: $token")
+                        viewModelScope.launch{ setFcmToken(token) }
+                    }
+                    override fun onPushNotification(title: String?, body: String?) {
+                        println("Push Notification received: $title")
+                        if (title != null && body != null) notifier.notify(title, body)
+                    }
+                })
             } catch (_: Exception) {
                 // Data was corrupt, refresh once
                 refreshUser()

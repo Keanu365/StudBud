@@ -1,7 +1,6 @@
 package io.github.keanu365.studbud.viewmodels
 
 import androidx.lifecycle.viewModelScope
-import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.Group
@@ -71,13 +70,10 @@ class AssignmentDetailsViewModel(
                     eq("id", assignment.id)
                 }
             }
-            supabase.auth.currentUserOrNull()?.let {
-                supabase.from("user_assignments").delete {
-                    filter {
-                        eq("id", it.id)
-                        eq("assignment_id", assignment.id)
-                        eq("completed", false)
-                    }
+            supabase.from("user_assignments").delete {
+                filter {
+                    eq("assignment_id", assignment.id)
+                    eq("completed", false)
                 }
             }
             onDelete()
