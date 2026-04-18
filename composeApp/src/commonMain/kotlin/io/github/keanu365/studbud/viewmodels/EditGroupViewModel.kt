@@ -61,14 +61,15 @@ class EditGroupViewModel(
     fun saveGroup(){
         viewModelScope.launch {
             try {
-                // Update group desc first so empty string is captured
+                // Update and not upsert so that deletion is captured
                 supabase.from("groups").update({
                     set("name", _newGroup.value.name)
-                    set("description", _newGroup.value.description) // This forces the empty string
+                    set("description", _newGroup.value.description)
+                    set("members", _newGroup.value.members)
+                    set("assignments", _newGroup.value.assignments)
                 }) {
                     filter { eq("id", _newGroup.value.id) }
                 }
-                supabase.from("groups").upsert(_newGroup.value)
                 usersToRemove.forEach { user ->
                     supabase.from("profiles")
                         .update (

@@ -229,7 +229,7 @@ fun App(
                             if (showBackArrow)
                             IconButton(
                                 onClick = {
-                                    backStack.removeLast()
+                                    backStack.removeAt(backStack.size - 1)
                                 }
                             ){
                                 Icon(

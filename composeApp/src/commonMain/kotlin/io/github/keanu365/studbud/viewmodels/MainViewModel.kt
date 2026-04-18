@@ -164,6 +164,7 @@ class MainViewModel(
                 .decodeSingleOrNull<Group>()?.let{
                     newGroups.add(it)
                 }
+            NotifierManager.getPushNotifier().subscribeToTopic("group_$groupId")
         }
         _groups.emit(newGroups)
         //Assignments
@@ -216,6 +217,7 @@ class MainViewModel(
             }
         }
         //Set user last to comply with achievements logic
+        NotifierManager.getPushNotifier().subscribeToTopic("group_${newUser.id}") //Subscribe to yourself too
         _user.value = newUser
         //And then save everything to the device
         appPrefs.saveRawUserData(newUser, newGroups, newAssignments, allAchievements)
@@ -243,9 +245,6 @@ class MainViewModel(
                         eq("id", user.id)
                     }
                 }
-            user.groups?.forEach { groupId ->
-                NotifierManager.getPushNotifier().subscribeToTopic("group_$groupId")
-            }
         }
     }
 
@@ -376,10 +375,8 @@ class MainViewModel(
                     _groups.value = Json.decodeFromString(appPrefs.rawGroupsData.first())
                     _assignments.value = Json.decodeFromString(appPrefs.rawAssignmentsData.first())
                     _allAchievements.value = Json.decodeFromString(appPrefs.rawAllAchievementsData.first())
-                } else {
-                    // Only refresh if we actually have NO data
-                    refreshUser()
                 }
+                refreshUser()
 
                 // Notification stuff
                 // To implement payload data in the future, go see https://github.com/mirzemehdi/KMPNotifier

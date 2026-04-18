@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
+import com.mmk.kmpnotifier.notification.NotifierManager
 import io.github.jan.supabase.postgrest.from
 import io.github.keanu365.studbud.Assignment
 import io.github.keanu365.studbud.Group
@@ -150,6 +151,7 @@ open class GroupDetailsViewModel(
                         }
                     }
                 onFinish("Successfully left group!")
+                NotifierManager.getPushNotifier().unSubscribeFromTopic("group_${group.id}")
             }
         } catch (e: Exception) {
             e.printStackTrace()
