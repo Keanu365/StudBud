@@ -8,6 +8,8 @@ sealed interface Route: NavKey {
     @Serializable
     data object SplashScreen: Route, NavKey
     @Serializable
+    data object OnboardingPage: Route, NavKey
+    @Serializable
     data object ThemeTest: Route, NavKey
     @Serializable
     data object SignUpPage: Route, NavKey

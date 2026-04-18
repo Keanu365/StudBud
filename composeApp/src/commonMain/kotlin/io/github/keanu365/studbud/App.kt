@@ -153,7 +153,7 @@ fun App(
                     },
             ){
                 Column(modifier = Modifier.padding(innerPadding)) {
-                    if (backStack.last() != Route.ImageViewPage) Spacer(
+                    if (backStack.last() !in viewModel.hideTopBar) Spacer(
                         modifier = Modifier.height(spacerHeight)
                     )
                     AnimatedVisibility(

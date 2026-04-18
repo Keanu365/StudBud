@@ -77,7 +77,7 @@ fun Homepage(
 ){
     val coroutineScope = rememberCoroutineScope()
     val networkStatus by rememberNetworkStatus()
-    val pagerState = rememberPagerState(pageCount = { Tabs.tabs.size })
+    val pagerState = rememberPagerState(pageCount = { Tabs.tabs.size }, initialPage = 1)
     val currentTab = Tabs.tabs[pagerState.currentPage]
 
     val user by viewModel.user.collectAsStateWithLifecycle()
@@ -133,7 +133,6 @@ fun Homepage(
     }
 
     LaunchedEffect(Unit){
-        pagerState.scrollToPage(1)
         if (!hasRefreshedThisSession && networkStatus == NetworkStatus.Available) {
             refresh()
             hasRefreshedThisSession = true

@@ -38,6 +38,7 @@ class MainViewModel(
             serializersModule = SerializersModule{
                 polymorphic(NavKey::class){
                     subclass(Route.SplashScreen::class, Route.SplashScreen.serializer())
+                    subclass(Route.OnboardingPage::class, Route.OnboardingPage.serializer())
                     subclass(Route.ThemeTest::class, Route.ThemeTest.serializer())
                     subclass(Route.SignUpPage::class, Route.SignUpPage.serializer())
                     subclass(Route.SignInPage::class, Route.SignInPage.serializer())
@@ -363,6 +364,7 @@ class MainViewModel(
     )
     val hideTopBar = listOf(
         Route.SplashScreen,
+        Route.OnboardingPage,
         Route.ImageViewPage
     )
 

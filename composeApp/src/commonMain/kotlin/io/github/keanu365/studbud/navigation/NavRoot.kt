@@ -34,6 +34,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.storage.storage
+import io.github.keanu365.studbud.Onboarding
 import io.github.keanu365.studbud.SplashLength
 import io.github.keanu365.studbud.SplashScreen
 import io.github.keanu365.studbud.SuccessPage
@@ -206,7 +207,7 @@ fun NavRoot(
                                         } else if (currentSession != null || appPrefs.signedIn.first()){
                                             Route.Homepage
                                         } else if (appPrefs.firstTimeUser.first()) {
-                                            Route.SignUpPage
+                                            Route.OnboardingPage
                                         } else {
                                             Route.SignInPage
                                         }
@@ -221,6 +222,16 @@ fun NavRoot(
                                 }
                             },
                             length = splashLength
+                        )
+                    }
+                }
+                Route.OnboardingPage -> {
+                    NavEntry(key){
+                        Onboarding(
+                            onFinish = {
+                                backStack.add(Route.SignUpPage)
+                                backStack.remove(key)
+                            }
                         )
                     }
                 }
