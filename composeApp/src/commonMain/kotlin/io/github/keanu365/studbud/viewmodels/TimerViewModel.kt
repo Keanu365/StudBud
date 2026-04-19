@@ -107,12 +107,12 @@ class TimerViewModel(
                 title = "Save Assignment",
                 text = "Save this assignment for later? All progress will be lost.",
             ){
-                setTimerState(TimerState.FINISHED)
+                setTimerState(TimerState.SAVED)
             }
         }
     }
 }
 
 enum class TimerState{
-    CONFIRMING, STARTING, RUNNING, PAUSED, INTERMISSION, FINISHED
+    CONFIRMING, STARTING, RUNNING, PAUSED, INTERMISSION, FINISHED, SAVED
 }

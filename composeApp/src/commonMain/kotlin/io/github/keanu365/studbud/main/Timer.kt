@@ -45,6 +45,7 @@ import io.github.keanu365.studbud.Divider
 import io.github.keanu365.studbud.TertiaryButton
 import io.github.keanu365.studbud.TitleText
 import io.github.keanu365.studbud.UserAssignment
+import io.github.keanu365.studbud.rememberSoundPlayer
 import io.github.keanu365.studbud.theme.buttonColors
 import io.github.keanu365.studbud.viewmodels.TimerState
 import io.github.keanu365.studbud.viewmodels.TimerViewModel
@@ -65,13 +66,21 @@ fun Timer(
     var iterations by remember { mutableStateOf(1) }
     var nextTimer by remember {mutableStateOf("${userAssignment.breaktime} minute break")}
     val value = (mins*60f + secs) / (userAssignment.period * 60f)
+    val soundPlayer = rememberSoundPlayer()
 
     LaunchedEffect(Unit){
         assignment = viewModel.getAssignment()
     }
     LaunchedEffect(mins){
         if (mins < 0) {
+            soundPlayer.playTimerFinishedSound()
             viewModel.setTimerState(TimerState.INTERMISSION)
+        }
+    }
+    // Change this block:
+    LaunchedEffect(state) {
+        if (state == TimerState.INTERMISSION) {
+            soundPlayer.playTimerFinishedSound()
         }
     }
     LaunchedEffect(iterations){
@@ -147,8 +156,8 @@ fun Timer(
                         }
                     )
                 }
-                TimerState.FINISHED -> {
-                    onFinish(userAssignment)
+                TimerState.FINISHED, TimerState.SAVED -> {
+                    onFinish(userAssignment.copy(completed = state == TimerState.FINISHED))
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
